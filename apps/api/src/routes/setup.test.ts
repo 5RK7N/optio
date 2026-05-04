@@ -512,3 +512,47 @@ describe("admin guard on POST setup routes", () => {
     expect(res.json().valid).toBe(true);
   });
 });
+
+describe("POST /api/setup/validate/gitlab-token", () => {
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    app = await buildTestApp();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("validates a self hosted gitlab instance correctly without redirect looping", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ username: "testuser", name: "Test User" }),
+      }),
+    );
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/setup/validate/gitlab-token",
+      payload: { token: "my-custom-token-format", host: "gitlab.mycompany.com/" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().valid).toBe(true);
+    expect(res.json().user.login).toBe("testuser");
+
+    // Check that fetch was called with the correct parameters
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://gitlab.mycompany.com/api/v4/user",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "PRIVATE-TOKEN": "my-custom-token-format",
+        }),
+        redirect: "manual",
+      })
+    );
+  });
+});
