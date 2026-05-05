@@ -552,7 +552,7 @@ describe("POST /api/setup/validate/gitlab-token", () => {
           "PRIVATE-TOKEN": "my-custom-token-format",
         }),
         redirect: "manual",
-      })
+      }),
     );
   });
 });
