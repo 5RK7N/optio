@@ -233,10 +233,11 @@ export async function setupRoutes(rawApp: FastifyInstance) {
     },
     async (req, reply) => {
       const { token, host } = req.body;
-      const gitlabHost = host ?? "gitlab.com";
+      const gitlabHost = (host ?? "gitlab.com").replace(/\/+$/, "");
       try {
         const res = await fetch(`https://${gitlabHost}/api/v4/user`, {
           headers: { "PRIVATE-TOKEN": token, "User-Agent": "Optio" },
+          redirect: "manual",
         });
         if (!res.ok) {
           return reply.send({ valid: false, error: `GitLab returned ${res.status}` });
@@ -490,11 +491,11 @@ export async function setupRoutes(rawApp: FastifyInstance) {
     },
     async (req, reply) => {
       const { token, host } = req.body;
-      const gitlabHost = host ?? "gitlab.com";
+      const gitlabHost = (host ?? "gitlab.com").replace(/\/+$/, "");
       try {
         const res = await fetch(
           `https://${gitlabHost}/api/v4/projects?membership=true&order_by=last_activity_at&sort=desc&per_page=20`,
-          { headers: { "PRIVATE-TOKEN": token, "User-Agent": "Optio" } },
+          { headers: { "PRIVATE-TOKEN": token, "User-Agent": "Optio" }, redirect: "manual" },
         );
         if (!res.ok) {
           return reply.send({ repos: [], error: `GitLab returned ${res.status}` });
