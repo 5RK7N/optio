@@ -50,6 +50,24 @@ function parseGitHubOwnerRepo(source: string): { owner: string; repo: string } |
   return m ? { owner: m[1], repo: m[2] } : null;
 }
 
+function isGitLabUrl(url: string, gitlabHost: string): boolean {
+  if (isGitHubUrl(url)) return false;
+  if (/gitlab/i.test(url)) return true;
+  if (gitlabHost && url.includes(gitlabHost)) return true;
+  return false;
+}
+
+function parseGitLabProjectPath(source: string, gitlabHost: string): string {
+  const host = gitlabHost || "gitlab.com";
+  let path = source;
+  const httpsRegex = new RegExp(`^https?://${host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/`);
+  path = path.replace(httpsRegex, "");
+  const sshRegex = new RegExp(`^git@${host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:`);
+  path = path.replace(sshRegex, "");
+  path = path.replace(/\.git$/, "").replace(/\/+$/, "");
+  return path;
+}
+
 export default function SetupPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -149,6 +167,7 @@ export default function SetupPage() {
 
   // Step 6: Tickets — per-repo GitHub Issues toggles + a list of external trackers
   const [githubIssueRepos, setGithubIssueRepos] = useState<Record<string, boolean>>({});
+  const [gitlabIssueRepos, setGitlabIssueRepos] = useState<Record<string, boolean>>({});
   type AddedTracker = {
     source: "linear" | "notion" | "jira";
     config: Record<string, unknown>;
@@ -239,6 +258,13 @@ export default function SetupPage() {
       const next = { ...prev };
       for (const r of repos) {
         if (isGitHubUrl(r.url) && !(r.url in next)) next[r.url] = true;
+      }
+      return next;
+    });
+    setGitlabIssueRepos((prev) => {
+      const next = { ...prev };
+      for (const r of repos) {
+        if (isGitLabUrl(r.url, gitlabHost) && !(r.url in next)) next[r.url] = true;
       }
       return next;
     });
@@ -695,6 +721,20 @@ export default function SetupPage() {
         // to the GitHub App installation token.
         if (githubToken) config.token = githubToken;
         await api.createTicketProvider({ source: "github", config });
+      }
+
+      // One GitLab Issues provider per repo the user enabled
+      for (const repo of repos) {
+        if (!isGitLabUrl(repo.url, gitlabHost) || !gitlabIssueRepos[repo.url]) continue;
+        const projectPath = parseGitLabProjectPath(repo.fullName ?? repo.url, gitlabHost);
+        if (!projectPath) continue;
+        const config: Record<string, unknown> = {
+          host: gitlabHost || "gitlab.com",
+          projectPath: projectPath,
+          label: "optio",
+        };
+        if (gitlabToken) config.token = gitlabToken;
+        await api.createTicketProvider({ source: "gitlab", config });
       }
 
       // All external trackers the user added (Linear / Notion / Jira)
@@ -1932,6 +1972,45 @@ export default function SetupPage() {
                 </div>
               ) : null}
 
+              {/* GitLab Issues — per-repo toggles */}
+              {repos.some((r) => isGitLabUrl(r.url, gitlabHost)) ? (
+                <div className="p-4 rounded-md bg-bg border border-border">
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z" />
+                    </svg>
+                    <h3 className="text-sm font-semibold">GitLab Issues</h3>
+                  </div>
+                  <p className="text-xs text-text-muted mb-3">
+                    Watch these repos for issues labeled{" "}
+                    <code className="px-1 py-0.5 bg-bg-card rounded text-primary">optio</code>.
+                  </p>
+                  <div className="space-y-2">
+                    {repos
+                      .filter((r) => isGitLabUrl(r.url, gitlabHost))
+                      .map((r) => (
+                        <label
+                          key={r.url}
+                          className="flex items-center gap-3 text-sm cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!!gitlabIssueRepos[r.url]}
+                            onChange={(e) =>
+                              setGitlabIssueRepos({
+                                ...gitlabIssueRepos,
+                                [r.url]: e.target.checked,
+                              })
+                            }
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="font-mono text-xs">{r.fullName ?? r.url}</span>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              ) : null}
+
               {/* Selected repos summary */}
               {repos.length > 0 && (
                 <div className="flex items-center gap-2 text-xs text-success">
@@ -1954,7 +2033,7 @@ export default function SetupPage() {
                         setManualRepoUrl("");
                       }
                     }}
-                    placeholder="https://github.com/owner/repo"
+                    placeholder="https://github.com/owner/repo or https://gitlab.com/owner/repo"
                     className="flex-1 px-3 py-2 rounded-md bg-bg border border-border text-sm focus:outline-none focus:border-primary"
                   />
                   <button
@@ -2409,6 +2488,17 @@ export default function SetupPage() {
                     </span>
                   </div>
                 )}
+
+                {Object.values(gitlabIssueRepos).filter(Boolean).length > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-success" />
+                    <span>
+                      GitLab Issues watching{" "}
+                      {Object.values(gitlabIssueRepos).filter(Boolean).length} repo(s)
+                    </span>
+                  </div>
+                )}
+
                 {addedTrackers.length + (buildDraftTracker() ? 1 : 0) > 0 && (
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className="w-4 h-4 text-success" />
