@@ -47,6 +47,41 @@ const BUILT_IN_PROVIDERS: Array<{
     capabilities: ["search_pages", "read_page", "list_databases", "query_database"],
   },
   {
+    slug: "gitlab-enhanced",
+    name: "GitLab (Enhanced)",
+    description:
+      "Access GitLab issues, merge requests, and repository content natively. Supports self-hosted endpoints.",
+    icon: "gitlab",
+    category: "productivity",
+    type: "mcp",
+    configSchema: {
+      type: "object",
+      properties: {
+        GITLAB_API_URL: {
+          type: "string",
+          title: "GitLab API URL (e.g., https://gitlab.com/api/v4)",
+          default: "https://gitlab.com/api/v4",
+        },
+        GITLAB_PERSONAL_ACCESS_TOKEN: {
+          type: "string",
+          title: "GitLab Personal Access Token",
+          format: "secret",
+        },
+      },
+      required: ["GITLAB_API_URL", "GITLAB_PERSONAL_ACCESS_TOKEN"],
+    },
+    requiredSecrets: ["GITLAB_PERSONAL_ACCESS_TOKEN"],
+    mcpConfig: {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-gitlab"],
+      envMapping: {
+        GITLAB_API_URL: "GITLAB_API_URL",
+        GITLAB_PERSONAL_ACCESS_TOKEN: "GITLAB_PERSONAL_ACCESS_TOKEN",
+      },
+    },
+    capabilities: ["search_repos", "read_issues", "create_issue", "read_prs", "read_files"],
+  },
+  {
     slug: "github-enhanced",
     name: "GitHub (Enhanced)",
     description: "Access GitHub issues, discussions, PRs, and repository content beyond git",
