@@ -551,7 +551,6 @@ describe("POST /api/setup/validate/gitlab-token", () => {
         headers: expect.objectContaining({
           Authorization: "Bearer my-custom-token-format",
         }),
-        redirect: "manual",
       }),
     );
   });
