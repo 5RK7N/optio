@@ -96,6 +96,12 @@ web:
     maxReplicas: 4
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: ""
+  # Additional env vars for the web deployment (opt-in)
+  extraEnv: []
+  # - name: EXAMPLE_ENV_VAR
+  #   value: "example value"
+  # - name: DEBUG
+  #   value: *
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Optio Operations Assistant Pod
