@@ -98,10 +98,8 @@ web:
     targetMemoryUtilizationPercentage: ""
   # Additional env vars for the web deployment (opt-in)
   extraEnv: []
-  # - name: EXAMPLE_ENV_VAR
-  #   value: "example value"
   # - name: DEBUG
-  #   value: *
+  #   value: "*"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Optio Operations Assistant Pod
