@@ -7,6 +7,7 @@ import { isSubscriptionAvailable } from "../services/auth-service.js";
 import { isGitHubAppConfigured, getInstallationToken } from "../services/github-app-service.js";
 import { isAuthDisabled } from "../services/oauth/index.js";
 import { ErrorResponseSchema } from "../schemas/common.js";
+import { parseRepoUrl } from "@optio/shared";
 
 const tokenSchema = z.object({ token: z.string().min(1) }).describe("Body with a required token");
 const gitlabTokenSchema = z
@@ -551,36 +552,65 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       const { repoUrl, token } = req.body;
 
       try {
-        const match = repoUrl.match(/github\.com[/:]([^/]+)\/([^/.]+)/);
-        if (!match) {
-          return reply.send({ valid: false, error: "Could not parse GitHub repo from URL" });
+        const parsed = parseRepoUrl(repoUrl);
+        if (!parsed) {
+          return reply.send({ valid: false, error: "Could not parse repository URL" });
         }
-        const [, owner, repo] = match;
-        const headers: Record<string, string> = { "User-Agent": "Optio" };
-        let repoToken: string | null = token ?? null;
-        if (!repoToken) repoToken = await retrieveSecret("GITHUB_TOKEN").catch(() => null);
-        if (!repoToken && isGitHubAppConfigured()) {
-          repoToken = await getInstallationToken().catch(() => null);
-        }
-        if (repoToken) headers["Authorization"] = `Bearer ${repoToken}`;
 
-        const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
-        if (res.ok) {
-          const data = (await res.json()) as {
-            full_name: string;
-            default_branch: string;
-            private: boolean;
-          };
-          reply.send({
-            valid: true,
-            repo: {
-              fullName: data.full_name,
-              defaultBranch: data.default_branch,
-              isPrivate: data.private,
-            },
+        let repoToken: string | null = token ?? null;
+
+        if (parsed.platform === "github") {
+          const headers: Record<string, string> = { "User-Agent": "Optio" };
+          if (!repoToken) repoToken = await retrieveSecret("GITHUB_TOKEN").catch(() => null);
+          if (!repoToken && isGitHubAppConfigured()) {
+            repoToken = await getInstallationToken().catch(() => null);
+          }
+          if (repoToken) headers["Authorization"] = `Bearer ${repoToken}`;
+
+          const res = await fetch(`${parsed.apiBaseUrl}/repos/${parsed.owner}/${parsed.repo}`, {
+            headers,
           });
-        } else {
-          reply.send({ valid: false, error: `Repository not accessible (${res.status})` });
+          if (res.ok) {
+            const data = (await res.json()) as {
+              full_name: string;
+              default_branch: string;
+              private: boolean;
+            };
+            reply.send({
+              valid: true,
+              repo: {
+                fullName: data.full_name,
+                defaultBranch: data.default_branch,
+                isPrivate: data.private,
+              },
+            });
+          } else {
+            reply.send({ valid: false, error: `GitHub repository not accessible (${res.status})` });
+          }
+        } else if (parsed.platform === "gitlab") {
+          const headers: Record<string, string> = {};
+          if (!repoToken) repoToken = await retrieveSecret("GITLAB_TOKEN").catch(() => null);
+          if (repoToken) headers["Authorization"] = `Bearer ${repoToken}`;
+
+          const projectPath = encodeURIComponent(`${parsed.owner}/${parsed.repo}`);
+          const res = await fetch(`${parsed.apiBaseUrl}/projects/${projectPath}`, { headers });
+          if (res.ok) {
+            const data = (await res.json()) as {
+              path_with_namespace: string;
+              default_branch: string;
+              visibility: string;
+            };
+            reply.send({
+              valid: true,
+              repo: {
+                fullName: data.path_with_namespace,
+                defaultBranch: data.default_branch ?? "main",
+                isPrivate: data.visibility !== "public",
+              },
+            });
+          } else {
+            reply.send({ valid: false, error: `GitLab repository not accessible (${res.status})` });
+          }
         }
       } catch (err) {
         app.log.error(err, "Repo validation failed");

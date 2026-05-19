@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { secrets } from "../db/schema.js";
-import type { SecretRef } from "@optio/shared";
+import { type SecretRef, registerGitLabHost } from "@optio/shared";
 
 const ALGORITHM = "aes-256-gcm";
 
@@ -132,6 +132,10 @@ export async function storeSecret(
 
   const aad = buildSecretAAD(name, scope, workspaceId);
   const { alg, ciphertext, iv, authTag } = encrypt(value, aad);
+
+  if (name === "GITLAB_HOST" && scope === "global") {
+    registerGitLabHost(value);
+  }
 
   // Build conditions for lookup
   const conditions = [eq(secrets.name, name), eq(secrets.scope, scope)];
