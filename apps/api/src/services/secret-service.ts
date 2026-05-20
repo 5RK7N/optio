@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { secrets } from "../db/schema.js";
-import { type SecretRef, registerGitLabHost } from "@optio/shared";
+import { type SecretRef, registerGitLabHost, unregisterGitLabHost } from "@optio/shared";
 
 const ALGORITHM = "aes-256-gcm";
 
@@ -133,7 +133,7 @@ export async function storeSecret(
   const aad = buildSecretAAD(name, scope, workspaceId);
   const { alg, ciphertext, iv, authTag } = encrypt(value, aad);
 
-  if (name === "GITLAB_HOST" && scope === "global") {
+  if (name === "GITLAB_HOST") {
     registerGitLabHost(value);
   }
 
@@ -257,7 +257,27 @@ export async function deleteSecret(
   if (userId) {
     conditions.push(eq(secrets.userId, userId));
   }
+
+  // If deleting a GITLAB_HOST entry, try to read its value first so we can
+  // unregister the dynamic host from the in-memory registry.
+  let oldValue: string | null = null;
+  if (name === "GITLAB_HOST") {
+    try {
+      oldValue = await retrieveSecret(name, scope, workspaceId, userId);
+    } catch {
+      /* ignore */
+    }
+  }
+
   await db.delete(secrets).where(and(...conditions));
+
+  if (name === "GITLAB_HOST" && oldValue) {
+    try {
+      unregisterGitLabHost(oldValue);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 /**

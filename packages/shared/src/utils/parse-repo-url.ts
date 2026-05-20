@@ -11,6 +11,10 @@ export function registerGitLabHost(host: string) {
   if (host) dynamicGitLabHosts.add(host.trim().toLowerCase());
 }
 
+export function unregisterGitLabHost(host: string) {
+  if (!host) return;
+  dynamicGitLabHosts.delete(host.trim().toLowerCase());
+}
 /**
  * GITLAB_HOSTS (plural): comma-separated list of all known GitLab hostnames,
  * used for platform detection when parsing repository URLs.

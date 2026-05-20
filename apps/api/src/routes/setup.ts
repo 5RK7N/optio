@@ -593,8 +593,19 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           if (repoToken) headers["Authorization"] = `Bearer ${repoToken}`;
 
           const projectPath = encodeURIComponent(`${parsed.owner}/${parsed.repo}`);
-          const res = await fetch(`${parsed.apiBaseUrl}/projects/${projectPath}`, { headers });
+          const res = await fetch(`${parsed.apiBaseUrl}/projects/${projectPath}`, {
+            headers,
+            redirect: "manual",
+          });
           if (res.ok) {
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              return reply.send({
+                valid: false,
+                error:
+                  "GitLab returned non-JSON response (possibly a login redirect). Ensure your token is valid.",
+              });
+            }
             const data = (await res.json()) as {
               path_with_namespace: string;
               default_branch: string;
