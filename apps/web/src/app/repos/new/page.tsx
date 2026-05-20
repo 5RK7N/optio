@@ -41,6 +41,7 @@ export default function NewRepoPage() {
 
   // Step 1: Repo
   const [repoUrl, setRepoUrl] = useState("");
+  const [platformHint, setPlatformHint] = useState<"github" | "gitlab" | "">("");
   const [fullName, setFullName] = useState("");
   const [defaultBranch, setDefaultBranch] = useState("main");
   const [isPrivate, setIsPrivate] = useState(false);
@@ -95,7 +96,7 @@ export default function NewRepoPage() {
         // No secrets access, that's fine
       }
 
-      const res = await api.validateRepo(repoUrl, token);
+      const res = await api.validateRepo(repoUrl, token, platformHint || undefined);
       if (res.valid && res.repo) {
         setFullName(res.repo.fullName);
         setDefaultBranch(res.repo.defaultBranch);
@@ -221,6 +222,8 @@ export default function NewRepoPage() {
           <RepoStep
             repoUrl={repoUrl}
             setRepoUrl={setRepoUrl}
+            platformHint={platformHint}
+            setPlatformHint={setPlatformHint}
             fullName={fullName}
             defaultBranch={defaultBranch}
             isPrivate={isPrivate}
@@ -327,6 +330,8 @@ export default function NewRepoPage() {
 function RepoStep({
   repoUrl,
   setRepoUrl,
+  platformHint,
+  setPlatformHint,
   fullName,
   defaultBranch,
   isPrivate,
@@ -338,6 +343,8 @@ function RepoStep({
 }: {
   repoUrl: string;
   setRepoUrl: (v: string) => void;
+  platformHint: "github" | "gitlab" | "";
+  setPlatformHint: (v: "github" | "gitlab" | "") => void;
   fullName: string;
   defaultBranch: string;
   isPrivate: boolean;
@@ -352,11 +359,20 @@ function RepoStep({
       <div>
         <h2 className="text-sm font-medium mb-1">Repository URL</h2>
         <p className="text-xs text-text-muted">
-          Paste a GitHub repository URL. Optio will fetch the repo metadata automatically.
+          Paste a GitHub or GitLab repository URL. Optio will fetch the repo metadata automatically.
         </p>
       </div>
 
       <div className="flex gap-2">
+        <select
+          value={platformHint}
+          onChange={(e) => setPlatformHint(e.target.value as "github" | "gitlab" | "")}
+          className={cn(inputClass, "w-32 shrink-0")}
+        >
+          <option value="">Auto-detect</option>
+          <option value="github">GitHub</option>
+          <option value="gitlab">GitLab</option>
+        </select>
         <input
           value={repoUrl}
           onChange={(e) => {
@@ -366,7 +382,7 @@ function RepoStep({
             }
           }}
           onKeyDown={(e) => e.key === "Enter" && onValidate()}
-          placeholder="https://github.com/owner/repo"
+          placeholder="https://github.com/owner/repo or https://gitlab.com/owner/repo"
           className={cn(inputClass, "flex-1")}
           autoFocus
         />

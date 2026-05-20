@@ -126,12 +126,12 @@ function cleanOwnerRepo(
  * Parse a git repository URL into a RepoIdentifier.
  * Detects platform from the host (github.com → github, gitlab.com or GITLAB_HOSTS → gitlab).
  */
-export function parseRepoUrl(url: string): RepoIdentifier | null {
+export function parseRepoUrl(url: string, platformHint?: GitPlatformType): RepoIdentifier | null {
   const extracted = extractParts(url);
   if (!extracted) return null;
 
   const host = extracted.host.toLowerCase();
-  const platform = detectPlatform(host);
+  const platform = platformHint ?? detectPlatform(host);
 
   const ownerRepo = cleanOwnerRepo(extracted.path, platform);
   if (!ownerRepo) return null;

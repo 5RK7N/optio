@@ -32,6 +32,7 @@ const validateRepoSchema = z
   .object({
     repoUrl: z.string().min(1),
     token: z.string().optional(),
+    platformHint: z.enum(["github", "gitlab"]).optional(),
   })
   .describe("Body for validating access to a specific repo URL");
 
@@ -549,10 +550,10 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       },
     },
     async (req, reply) => {
-      const { repoUrl, token } = req.body;
+      const { repoUrl, token, platformHint } = req.body;
 
       try {
-        const parsed = parseRepoUrl(repoUrl);
+        const parsed = parseRepoUrl(repoUrl, platformHint);
         if (!parsed) {
           return reply.send({ valid: false, error: "Could not parse repository URL" });
         }
@@ -571,6 +572,14 @@ export async function setupRoutes(rawApp: FastifyInstance) {
             headers,
           });
           if (res.ok) {
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              return reply.send({
+                valid: false,
+                error:
+                  "Repo returned non-JSON response (possibly a login redirect or proxy error). Ensure your token is valid.",
+              });
+            }
             const data = (await res.json()) as {
               full_name: string;
               default_branch: string;
