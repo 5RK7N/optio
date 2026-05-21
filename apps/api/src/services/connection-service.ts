@@ -371,9 +371,33 @@ export async function createProvider(
  */
 export async function seedBuiltInProviders(): Promise<void> {
   for (const provider of BUILT_IN_PROVIDERS) {
-    await db
-      .insert(connectionProviders)
-      .values({
+    const existing = await db
+      .select({ id: connectionProviders.id })
+      .from(connectionProviders)
+      .where(
+        and(eq(connectionProviders.slug, provider.slug), isNull(connectionProviders.workspaceId)),
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(connectionProviders)
+        .set({
+          name: provider.name,
+          description: provider.description,
+          icon: provider.icon,
+          category: provider.category,
+          type: provider.type,
+          configSchema: provider.configSchema,
+          requiredSecrets: provider.requiredSecrets,
+          mcpConfig: provider.mcpConfig ?? undefined,
+          capabilities: provider.capabilities,
+          builtIn: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(connectionProviders.id, existing[0].id));
+    } else {
+      await db.insert(connectionProviders).values({
         slug: provider.slug,
         name: provider.name,
         description: provider.description,
@@ -386,23 +410,8 @@ export async function seedBuiltInProviders(): Promise<void> {
         capabilities: provider.capabilities,
         builtIn: true,
         workspaceId: undefined, // built-in providers have NULL workspaceId
-      })
-      .onConflictDoUpdate({
-        target: [connectionProviders.slug, connectionProviders.workspaceId],
-        set: {
-          name: provider.name,
-          description: provider.description,
-          icon: provider.icon,
-          category: provider.category,
-          type: provider.type,
-          configSchema: provider.configSchema,
-          requiredSecrets: provider.requiredSecrets,
-          mcpConfig: provider.mcpConfig ?? undefined,
-          capabilities: provider.capabilities,
-          builtIn: true,
-          updatedAt: new Date(),
-        },
       });
+    }
   }
 }
 

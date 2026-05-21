@@ -594,6 +594,22 @@ export async function setupRoutes(rawApp: FastifyInstance) {
               },
             });
           } else {
+            app.log.warn(
+              { status: res.status, url: res.url },
+              "GitHub repository not accessible during setup validation",
+            );
+            if (res.status === 401 || res.status === 403) {
+              return reply.send({
+                valid: false,
+                error: `GitHub authentication failed (${res.status}). Ensure your token is valid and has repo access.`,
+              });
+            }
+            if (res.status >= 300 && res.status < 400) {
+              return reply.send({
+                valid: false,
+                error: `GitHub returned a redirect (${res.status}). This often means a proxy is blocking access.`,
+              });
+            }
             reply.send({ valid: false, error: `GitHub repository not accessible (${res.status})` });
           }
         } else if (parsed.platform === "gitlab") {
@@ -604,7 +620,6 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           const projectPath = encodeURIComponent(`${parsed.owner}/${parsed.repo}`);
           const res = await fetch(`${parsed.apiBaseUrl}/projects/${projectPath}`, {
             headers,
-            redirect: "manual",
           });
           if (res.ok) {
             const contentType = res.headers.get("content-type");
@@ -629,6 +644,22 @@ export async function setupRoutes(rawApp: FastifyInstance) {
               },
             });
           } else {
+            app.log.warn(
+              { status: res.status, url: res.url },
+              "GitLab repository not accessible during setup validation",
+            );
+            if (res.status === 401 || res.status === 403) {
+              return reply.send({
+                valid: false,
+                error: `GitLab authentication failed (${res.status}). Ensure your token is valid and has API access.`,
+              });
+            }
+            if (res.status >= 300 && res.status < 400) {
+              return reply.send({
+                valid: false,
+                error: `GitLab returned a redirect (${res.status}). This often means a proxy is blocking access or requesting SSO login.`,
+              });
+            }
             reply.send({ valid: false, error: `GitLab repository not accessible (${res.status})` });
           }
         }
