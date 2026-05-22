@@ -370,16 +370,21 @@ export async function createProvider(
  * Uses upsert on the (slug, workspaceId) unique constraint.
  */
 export async function seedBuiltInProviders(): Promise<void> {
+  const { inArray } = await import("drizzle-orm");
   for (const provider of BUILT_IN_PROVIDERS) {
     const existing = await db
       .select({ id: connectionProviders.id })
       .from(connectionProviders)
       .where(
         and(eq(connectionProviders.slug, provider.slug), isNull(connectionProviders.workspaceId)),
-      )
-      .limit(1);
+      );
 
     if (existing.length > 0) {
+      if (existing.length > 1) {
+        const toDelete = existing.slice(1).map((r) => r.id);
+        await db.delete(connectionProviders).where(inArray(connectionProviders.id, toDelete));
+      }
+
       await db
         .update(connectionProviders)
         .set({
