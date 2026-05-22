@@ -615,7 +615,10 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         } else if (parsed.platform === "gitlab") {
           const headers: Record<string, string> = {};
           if (!repoToken) repoToken = await retrieveSecret("GITLAB_TOKEN").catch(() => null);
-          if (repoToken) headers["Authorization"] = `Bearer ${repoToken}`;
+          if (repoToken) {
+            headers["Authorization"] = `Bearer ${repoToken}`;
+            headers["PRIVATE-TOKEN"] = repoToken;
+          }
 
           const projectPath = encodeURIComponent(`${parsed.owner}/${parsed.repo}`);
           const res = await fetch(`${parsed.apiBaseUrl}/projects/${projectPath}`, {
