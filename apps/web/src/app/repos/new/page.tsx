@@ -17,6 +17,7 @@ import {
   Globe,
   Search,
   AlertCircle,
+  Github,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -372,21 +373,41 @@ function RepoStep({
     <section className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-4">
       <div>
         <h2 className="text-sm font-medium mb-1">Repository URL</h2>
-        <p className="text-xs text-text-muted">
+        <p className="text-xs text-text-muted mb-3">
           Paste a repository URL. Optio will fetch the repo metadata automatically.
         </p>
       </div>
 
       <div className="flex gap-2">
-        <select
-          value={platformHint}
-          onChange={(e) => setPlatformHint(e.target.value as "github" | "gitlab" | "")}
-          className={cn(inputClass, "w-32 shrink-0")}
+        <button
+          onClick={() => setPlatformHint(platformHint === "github" ? "" : "github")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
+            platformHint === "github"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-text-muted hover:bg-bg-hover",
+          )}
         >
-          <option value="">Auto-detect</option>
-          <option value="github">GitHub</option>
-          <option value="gitlab">GitLab</option>
-        </select>
+          <Github className="w-4 h-4" />
+          GitHub
+        </button>
+        <button
+          onClick={() => setPlatformHint(platformHint === "gitlab" ? "" : "gitlab")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
+            platformHint === "gitlab"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-text-muted hover:bg-bg-hover",
+          )}
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z" />
+          </svg>
+          GitLab
+        </button>
+      </div>
+
+      <div className="flex gap-2">
         <input
           value={repoUrl}
           onChange={(e) => {

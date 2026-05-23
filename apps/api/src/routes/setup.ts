@@ -556,10 +556,11 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           return reply.send({ valid: false, error: "Could not parse repository URL" });
         }
 
-        const headers: Record<string, string> = { "User-Agent": "Optio" };
+        const headers: Record<string, string> = {};
         let repoToken: string | null = token ?? null;
 
         if (parsed.platform === "github") {
+          headers["User-Agent"] = "Optio";
           if (!repoToken) repoToken = await retrieveSecret("GITHUB_TOKEN").catch(() => null);
           if (!repoToken && isGitHubAppConfigured()) {
             repoToken = await getInstallationToken().catch(() => null);
