@@ -238,7 +238,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       const gitlabHost = (host ?? "gitlab.com").replace(/\/+$/, "");
       try {
         const res = await fetch(`https://${gitlabHost}/api/v4/user`, {
-          headers: { "PRIVATE-TOKEN": token, "User-Agent": "Optio" },
+          headers: { "PRIVATE-TOKEN": token },
         });
         if (!res.ok) {
           return reply.send({ valid: false, error: `GitLab returned ${res.status}` });
