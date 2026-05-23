@@ -496,7 +496,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       try {
         const res = await fetch(
           `https://${gitlabHost}/api/v4/projects?membership=true&order_by=last_activity_at&sort=desc&per_page=20`,
-          { headers: { "PRIVATE-TOKEN": token } },
+          { headers: { Authorization: `Bearer ${token}` } },
         );
         if (!res.ok) {
           return reply.send({ repos: [], error: `GitLab returned ${res.status}` });
@@ -609,7 +609,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           }
         } else if (parsed.platform === "gitlab") {
           if (!repoToken) repoToken = await retrieveSecret("GITLAB_TOKEN").catch(() => null);
-          if (repoToken) headers["PRIVATE-TOKEN"] = repoToken;
+          if (repoToken) headers["Authorization"] = `Bearer ${repoToken}`;
 
           const projectPath = encodeURIComponent(`${parsed.owner}/${parsed.repo}`);
           const res = await fetch(`${parsed.apiBaseUrl}/projects/${projectPath}`, {
