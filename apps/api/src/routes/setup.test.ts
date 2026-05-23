@@ -550,7 +550,6 @@ describe("POST /api/setup/validate/gitlab-token", () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: "Bearer my-custom-token-format",
-          "PRIVATE-TOKEN": "my-custom-token-format",
         }),
       }),
     );

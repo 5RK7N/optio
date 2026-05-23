@@ -68,7 +68,6 @@ describe("GitLabPlatform", () => {
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: "Bearer glpat-test123",
-            "PRIVATE-TOKEN": "glpat-test123",
           }),
         }),
       );

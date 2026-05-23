@@ -240,7 +240,6 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         const res = await fetch(`https://${gitlabHost}/api/v4/user`, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "PRIVATE-TOKEN": token,
           },
         });
         if (!res.ok) {
