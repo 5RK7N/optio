@@ -246,7 +246,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         const user = (await res.json()) as { username: string; name: string };
         reply.send({ valid: true, user: { login: user.username, name: user.name } });
       } catch (err) {
-        app.log.error(err, "GitLab token validation failed");
+        app.log.error(err, "GitLab token validation failed.");
         reply.send({ valid: false, error: sanitizeError(err) });
       }
     },

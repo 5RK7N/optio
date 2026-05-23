@@ -82,21 +82,35 @@ export default function NewRepoPage() {
     setValidating(true);
     setValidationError("");
     setValidated(false);
+
+    // Determine repository platform from URL or user hint
+    let effectivePlatform = platformHint || undefined;
+    if (!effectivePlatform) {
+      if (repoUrl.includes("github.com")) effectivePlatform = "github";
+      else if (repoUrl.includes("gitlab.com")) effectivePlatform = "gitlab";
+    }
+
     try {
-      // Try to get GitHub token from secrets for private repos
+      // Try to get token from secrets for private repos
       let token: string | undefined;
       try {
         const secrets = await api.listSecrets("global");
-        const ghSecret = secrets.secrets.find((s: any) => s.name === "GITHUB_TOKEN");
-        if (ghSecret) {
-          // Token exists but we can't read the value — the validate endpoint will use it server-side
-          token = undefined;
+
+        let tokenName: string | undefined;
+        if (effectivePlatform === "github") {
+          tokenName = "GITHUB_TOKEN";
+        } else if (effectivePlatform === "gitlab") {
+          tokenName = "GITLAB_TOKEN";
         }
-      } catch {
+
+        if (tokenName) {
+          token = secrets.secrets.find((s: any) => s.name === tokenName)?.value;
+        }
+      } catch (err: any) {
         // No secrets access, that's fine
       }
 
-      const res = await api.validateRepo(repoUrl, token, platformHint || undefined);
+      const res = await api.validateRepo(repoUrl, token, effectivePlatform);
       if (res.valid && res.repo) {
         setFullName(res.repo.fullName);
         setDefaultBranch(res.repo.defaultBranch);
@@ -105,8 +119,8 @@ export default function NewRepoPage() {
       } else {
         setValidationError(res.error || "Could not access repository");
       }
-    } catch {
-      setValidationError("Failed to validate repository");
+    } catch (err: any) {
+      setValidationError(err.message || "Failed to validate repository");
     } finally {
       setValidating(false);
     }

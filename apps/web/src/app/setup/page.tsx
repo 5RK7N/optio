@@ -429,8 +429,37 @@ export default function SetupPage() {
   const validateRepo = async (repoUrl: string) => {
     if (!repoUrl.trim()) return;
     setLoading(true);
+
+    let effectivePlatform: "github" | "gitlab" | undefined;
+    if (isGitHubUrl(repoUrl)) effectivePlatform = "github";
+    else if (isGitLabUrl(repoUrl, gitlabHost)) effectivePlatform = "gitlab";
+
     try {
-      const res = await api.validateRepo(repoUrl, githubToken || undefined);
+      let token: string | undefined;
+      if (effectivePlatform === "github" && githubToken) {
+        token = githubToken;
+      } else if (effectivePlatform === "gitlab" && gitlabToken) {
+        token = gitlabToken;
+      } else {
+        try {
+          const secrets = await api.listSecrets("global");
+
+          let tokenName: string | undefined;
+          if (effectivePlatform === "github") {
+            tokenName = "GITHUB_TOKEN";
+          } else if (effectivePlatform === "gitlab") {
+            tokenName = "GITLAB_TOKEN";
+          }
+
+          if (tokenName) {
+            token = secrets.secrets.find((s: any) => s.name === tokenName)?.value;
+          }
+        } catch (err: any) {
+          // No secrets access, that's fine
+        }
+      }
+
+      const res = await api.validateRepo(repoUrl, token, effectivePlatform);
       if (res.valid && res.repo) {
         setRepos((prev) =>
           prev.map((r) =>
@@ -2033,7 +2062,7 @@ export default function SetupPage() {
                         setManualRepoUrl("");
                       }
                     }}
-                    placeholder="https://github.com/owner/repo or https://gitlab.com/owner/repo"
+                    placeholder="https://example.com/path/to/repo.git"
                     className="flex-1 px-3 py-2 rounded-md bg-bg border border-border text-sm focus:outline-none focus:border-primary"
                   />
                   <button
