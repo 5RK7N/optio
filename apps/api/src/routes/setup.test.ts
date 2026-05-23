@@ -351,7 +351,7 @@ describe("error sanitization in setup routes", () => {
 
     const res = await app.inject({
       method: "POST",
-      url: "/api/setup/repos",
+      url: "/api/setup/repos/github",
       payload: { token: "ghp_test" },
     });
 
@@ -361,7 +361,7 @@ describe("error sanitization in setup routes", () => {
   });
 });
 
-describe("POST /api/setup/repos", () => {
+describe("POST /api/setup/repos/github", () => {
   let app: FastifyInstance;
 
   beforeEach(async () => {
@@ -376,7 +376,7 @@ describe("POST /api/setup/repos", () => {
   it("returns 400 when no token provided", async () => {
     const res = await app.inject({
       method: "POST",
-      url: "/api/setup/repos",
+      url: "/api/setup/repos/github",
       payload: {},
     });
 
@@ -406,7 +406,7 @@ describe("POST /api/setup/repos", () => {
 
     const res = await app.inject({
       method: "POST",
-      url: "/api/setup/repos",
+      url: "/api/setup/repos/github",
       payload: { token: "ghp_valid" },
     });
 
@@ -549,7 +549,7 @@ describe("POST /api/setup/validate/gitlab-token", () => {
       "https://gitlab.mycompany.com/api/v4/user",
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: "Bearer my-custom-token-format",
+          "PRIVATE-TOKEN": "my-custom-token-format",
         }),
       }),
     );

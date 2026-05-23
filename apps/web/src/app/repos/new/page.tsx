@@ -359,7 +359,7 @@ function RepoStep({
       <div>
         <h2 className="text-sm font-medium mb-1">Repository URL</h2>
         <p className="text-xs text-text-muted">
-          Paste a GitHub or GitLab repository URL. Optio will fetch the repo metadata automatically.
+          Paste a repository URL. Optio will fetch the repo metadata automatically.
         </p>
       </div>
 
@@ -382,7 +382,7 @@ function RepoStep({
             }
           }}
           onKeyDown={(e) => e.key === "Enter" && onValidate()}
-          placeholder="https://github.com/owner/repo or https://gitlab.com/owner/repo"
+          placeholder="https://example.com/path/to/repo.git"
           className={cn(inputClass, "flex-1")}
           autoFocus
         />

@@ -238,9 +238,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       const gitlabHost = (host ?? "gitlab.com").replace(/\/+$/, "");
       try {
         const res = await fetch(`https://${gitlabHost}/api/v4/user`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "PRIVATE-TOKEN": token, "User-Agent": "Optio" },
         });
         if (!res.ok) {
           return reply.send({ valid: false, error: `GitLab returned ${res.status}` });
@@ -403,7 +401,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
   );
 
   app.post(
-    "/api/setup/repos",
+    "/api/setup/repos/github",
     {
       config: { rateLimit: SETUP_POST_RATE_LIMIT },
       preHandler: [requireAdminWhenAuthenticated],
@@ -498,9 +496,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       try {
         const res = await fetch(
           `https://${gitlabHost}/api/v4/projects?membership=true&order_by=last_activity_at&sort=desc&per_page=20`,
-          {
-            headers: { "PRIVATE-TOKEN": token },
-          },
+          { headers: { "PRIVATE-TOKEN": token, "User-Agent": "Optio" } },
         );
         if (!res.ok) {
           return reply.send({ repos: [], error: `GitLab returned ${res.status}` });
@@ -544,8 +540,8 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         operationId: "validateRepoAccess",
         summary: "Validate access to a specific repo",
         description:
-          "Check whether Optio can access a given GitHub repo URL using the " +
-          "supplied token (or the configured GitHub App).",
+          "Check whether Optio can access a given repo URL using the " +
+          "supplied token (or the configured App).",
         tags: ["Setup & Settings"],
         body: validateRepoSchema,
         response: { 200: ValidationResultSchema, 400: ErrorResponseSchema },
@@ -560,10 +556,10 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           return reply.send({ valid: false, error: "Could not parse repository URL" });
         }
 
+        const headers: Record<string, string> = { "User-Agent": "Optio" };
         let repoToken: string | null = token ?? null;
 
         if (parsed.platform === "github") {
-          const headers: Record<string, string> = { "User-Agent": "Optio" };
           if (!repoToken) repoToken = await retrieveSecret("GITHUB_TOKEN").catch(() => null);
           if (!repoToken && isGitHubAppConfigured()) {
             repoToken = await getInstallationToken().catch(() => null);
@@ -579,7 +575,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
               return reply.send({
                 valid: false,
                 error:
-                  "Repo returned non-JSON response (possibly a login redirect or proxy error). Ensure your token is valid.",
+                  "Repo returned non-JSON response (possibly a login redirect or proxy error).",
               });
             }
             const data = (await res.json()) as {
@@ -596,14 +592,11 @@ export async function setupRoutes(rawApp: FastifyInstance) {
               },
             });
           } else {
-            app.log.warn(
-              { status: res.status, url: res.url },
-              "GitHub repository not accessible during setup validation",
-            );
+            app.log.warn({ status: res.status, url: res.url }, "GitHub repository not accessible.");
             if (res.status === 401 || res.status === 403) {
               return reply.send({
                 valid: false,
-                error: `GitHub authentication failed (${res.status}). Ensure your token is valid and has repo access.`,
+                error: `GitHub authentication failed (${res.status}). Ensure GITHUB_TOKEN secret is valid and has repo access.`,
               });
             }
             if (res.status >= 300 && res.status < 400) {
@@ -615,11 +608,8 @@ export async function setupRoutes(rawApp: FastifyInstance) {
             reply.send({ valid: false, error: `GitHub repository not accessible (${res.status})` });
           }
         } else if (parsed.platform === "gitlab") {
-          const headers: Record<string, string> = {};
           if (!repoToken) repoToken = await retrieveSecret("GITLAB_TOKEN").catch(() => null);
-          if (repoToken) {
-            headers["PRIVATE-TOKEN"] = repoToken;
-          }
+          if (repoToken) headers["PRIVATE-TOKEN"] = repoToken;
 
           const projectPath = encodeURIComponent(`${parsed.owner}/${parsed.repo}`);
           const res = await fetch(`${parsed.apiBaseUrl}/projects/${projectPath}`, {
@@ -630,8 +620,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
             if (!contentType || !contentType.includes("application/json")) {
               return reply.send({
                 valid: false,
-                error:
-                  "GitLab returned non-JSON response (possibly a login redirect). Ensure your token is valid.",
+                error: "GitLab returned non-JSON response (possibly a login redirect).",
               });
             }
             const data = (await res.json()) as {
@@ -648,14 +637,11 @@ export async function setupRoutes(rawApp: FastifyInstance) {
               },
             });
           } else {
-            app.log.warn(
-              { status: res.status, url: res.url },
-              "GitLab repository not accessible during setup validation",
-            );
+            app.log.warn({ status: res.status, url: res.url }, "GitLab repository not accessible.");
             if (res.status === 401 || res.status === 403) {
               return reply.send({
                 valid: false,
-                error: `GitLab authentication failed (${res.status}). Ensure your token is valid and has API access.`,
+                error: `GitLab authentication failed (${res.status}). Ensure GITLAB_TOKEN secret is valid and has API access.`,
               });
             }
             if (res.status >= 300 && res.status < 400) {

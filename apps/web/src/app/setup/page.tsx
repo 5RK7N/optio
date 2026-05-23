@@ -222,7 +222,7 @@ export default function SetupPage() {
       setSuggestedLoading(true);
       const fetches: Promise<{ repos: any[] }>[] = [];
       if (githubAppConfigured || (githubEnabled && githubToken))
-        fetches.push(api.listUserRepos(githubToken || ""));
+        fetches.push(api.listGithubRepos(githubToken || ""));
       if (gitlabEnabled && gitlabToken)
         fetches.push(api.listGitlabRepos(gitlabToken, gitlabHost || undefined));
       if (fetches.length > 0) {

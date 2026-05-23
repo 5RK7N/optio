@@ -332,7 +332,7 @@ const MIGRATED_ROUTES: MigratedRoute[] = [
   { method: "post", path: "/api/setup/validate/copilot-token" },
   { method: "post", path: "/api/setup/validate/openai-key" },
   { method: "post", path: "/api/setup/validate/gemini-key" },
-  { method: "post", path: "/api/setup/repos" },
+  { method: "post", path: "/api/setup/repos/github" },
   { method: "post", path: "/api/setup/repos/gitlab" },
   { method: "post", path: "/api/setup/validate/repo" },
   // secrets.ts (3)

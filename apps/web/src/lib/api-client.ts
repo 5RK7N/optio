@@ -339,7 +339,7 @@ export const api = {
       steps: Record<string, { done: boolean; label: string }>;
     }>("/api/setup/status"),
 
-  listUserRepos: (token: string) =>
+  listGithubRepos: (token: string) =>
     request<{
       repos: Array<{
         fullName: string;
@@ -352,7 +352,7 @@ export const api = {
         pushedAt: string;
       }>;
       error?: string;
-    }>("/api/setup/repos", {
+    }>("/api/setup/repos/github", {
       method: "POST",
       body: JSON.stringify({ token }),
     }),
