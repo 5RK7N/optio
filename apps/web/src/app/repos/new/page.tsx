@@ -85,33 +85,16 @@ export default function NewRepoPage() {
     setValidated(false);
 
     // Determine repository platform from URL or user hint
-    let effectivePlatform = platformHint || undefined;
-    if (!effectivePlatform) {
-      if (repoUrl.includes("github.com")) effectivePlatform = "github";
-      else if (repoUrl.includes("gitlab.com")) effectivePlatform = "gitlab";
-    }
+    const effectivePlatform =
+      platformHint ||
+      (repoUrl.includes("github.com")
+        ? "github"
+        : repoUrl.includes("gitlab.com")
+          ? "gitlab"
+          : undefined);
 
     try {
-      // Try to get token from secrets for private repos
-      let token: string | undefined;
-      try {
-        const secrets = await api.listSecrets("global");
-
-        let tokenName: string | undefined;
-        if (effectivePlatform === "github") {
-          tokenName = "GITHUB_TOKEN";
-        } else if (effectivePlatform === "gitlab") {
-          tokenName = "GITLAB_TOKEN";
-        }
-
-        if (tokenName) {
-          token = secrets.secrets.find((s: any) => s.name === tokenName)?.value;
-        }
-      } catch (err: any) {
-        // No secrets access, that's fine
-      }
-
-      const res = await api.validateRepo(repoUrl, token, effectivePlatform);
+      const res = await api.validateRepo(repoUrl, effectivePlatform);
       if (res.valid && res.repo) {
         setFullName(res.repo.fullName);
         setDefaultBranch(res.repo.defaultBranch);
@@ -369,6 +352,10 @@ function RepoStep({
   onValidate: () => void;
   inputClass: string;
 }) {
+  const activePlatform =
+    platformHint ||
+    (repoUrl.includes("github.com") ? "github" : repoUrl.includes("gitlab.com") ? "gitlab" : "");
+
   return (
     <section className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-4">
       <div>
@@ -383,7 +370,7 @@ function RepoStep({
           onClick={() => setPlatformHint(platformHint === "github" ? "" : "github")}
           className={cn(
             "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
-            platformHint === "github"
+            activePlatform === "github"
               ? "border-primary bg-primary/10 text-primary"
               : "border-border text-text-muted hover:bg-bg-hover",
           )}
@@ -395,7 +382,7 @@ function RepoStep({
           onClick={() => setPlatformHint(platformHint === "gitlab" ? "" : "gitlab")}
           className={cn(
             "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
-            platformHint === "gitlab"
+            activePlatform === "gitlab"
               ? "border-primary bg-primary/10 text-primary"
               : "border-border text-text-muted hover:bg-bg-hover",
           )}

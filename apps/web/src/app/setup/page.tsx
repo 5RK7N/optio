@@ -459,7 +459,7 @@ export default function SetupPage() {
         }
       }
 
-      const res = await api.validateRepo(repoUrl, token, effectivePlatform);
+      const res = await api.validateRepo(repoUrl, effectivePlatform, token);
       if (res.valid && res.repo) {
         setRepos((prev) =>
           prev.map((r) =>

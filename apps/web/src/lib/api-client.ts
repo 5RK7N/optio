@@ -410,7 +410,7 @@ export const api = {
       body: JSON.stringify({ key }),
     }),
 
-  validateRepo: (repoUrl: string, token?: string, platformHint?: "github" | "gitlab") =>
+  validateRepo: (repoUrl: string, platformHint?: "github" | "gitlab", token?: string) =>
     request<{
       valid: boolean;
       error?: string;

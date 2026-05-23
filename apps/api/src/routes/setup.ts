@@ -548,7 +548,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       },
     },
     async (req, reply) => {
-      const { repoUrl, token, platformHint } = req.body;
+      const { repoUrl, platformHint, token } = req.body;
 
       try {
         const parsed = parseRepoUrl(repoUrl, platformHint);
