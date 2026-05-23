@@ -238,7 +238,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       const gitlabHost = (host ?? "gitlab.com").replace(/\/+$/, "");
       try {
         const res = await fetch(`https://${gitlabHost}/api/v4/user`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { "PRIVATE-TOKEN": token },
         });
         if (!res.ok) {
           return reply.send({ valid: false, error: `GitLab returned ${res.status}` });
@@ -497,7 +497,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         const res = await fetch(
           `https://${gitlabHost}/api/v4/projects?membership=true&order_by=last_activity_at&sort=desc&per_page=20`,
           {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { "PRIVATE-TOKEN": token },
           },
         );
         if (!res.ok) {
@@ -616,7 +616,6 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           const headers: Record<string, string> = {};
           if (!repoToken) repoToken = await retrieveSecret("GITLAB_TOKEN").catch(() => null);
           if (repoToken) {
-            headers["Authorization"] = `Bearer ${repoToken}`;
             headers["PRIVATE-TOKEN"] = repoToken;
           }
 
