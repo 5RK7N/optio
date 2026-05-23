@@ -17,6 +17,10 @@ spec:
         app: optio-api
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
