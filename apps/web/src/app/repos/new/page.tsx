@@ -93,8 +93,36 @@ export default function NewRepoPage() {
           ? "gitlab"
           : undefined);
 
+    // If we can't determine the platform, prompt the user to specify it
+    if (!effectivePlatform) {
+      setValidationError(
+        "Could not auto-detect repository provider. Please select GitHub or GitLab.",
+      );
+      setValidating(false);
+      return;
+    }
+
+    // Try to fetch a token from secrets to validate private repos
+    let token: string | undefined;
     try {
-      const res = await api.validateRepo(repoUrl, effectivePlatform);
+      const secrets = await api.listSecrets("global");
+
+      let tokenName: string | undefined;
+      if (effectivePlatform === "github") {
+        tokenName = "GITHUB_TOKEN";
+      } else if (effectivePlatform === "gitlab") {
+        tokenName = "GITLAB_TOKEN";
+      }
+
+      if (tokenName) {
+        token = secrets.secrets.find((s: any) => s.name === tokenName)?.value;
+      }
+    } catch (err: any) {
+      // No secrets access, that's fine
+    }
+
+    try {
+      const res = await api.validateRepo(repoUrl, effectivePlatform, token);
       if (res.valid && res.repo) {
         setFullName(res.repo.fullName);
         setDefaultBranch(res.repo.defaultBranch);

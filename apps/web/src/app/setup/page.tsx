@@ -440,23 +440,6 @@ export default function SetupPage() {
         token = githubToken;
       } else if (effectivePlatform === "gitlab" && gitlabToken) {
         token = gitlabToken;
-      } else {
-        try {
-          const secrets = await api.listSecrets("global");
-
-          let tokenName: string | undefined;
-          if (effectivePlatform === "github") {
-            tokenName = "GITHUB_TOKEN";
-          } else if (effectivePlatform === "gitlab") {
-            tokenName = "GITLAB_TOKEN";
-          }
-
-          if (tokenName) {
-            token = secrets.secrets.find((s: any) => s.name === tokenName)?.value;
-          }
-        } catch (err: any) {
-          // No secrets access, that's fine
-        }
       }
 
       const res = await api.validateRepo(repoUrl, effectivePlatform, token);
