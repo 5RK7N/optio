@@ -32,7 +32,7 @@ const validateRepoSchema = z
   .object({
     repoUrl: z.string().min(1),
     token: z.string().optional(),
-    platformHint: z.enum(["github", "gitlab"]).optional(),
+    effectivePlatform: z.enum(["github", "gitlab"]).optional(),
   })
   .describe("Body for validating access to a specific repo URL");
 
@@ -548,10 +548,10 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       },
     },
     async (req, reply) => {
-      const { repoUrl, platformHint, token } = req.body;
+      const { repoUrl, effectivePlatform, token } = req.body;
 
       try {
-        const parsed = parseRepoUrl(repoUrl, platformHint);
+        const parsed = parseRepoUrl(repoUrl, effectivePlatform);
         if (!parsed) {
           return reply.send({ valid: false, error: "Could not parse repository URL" });
         }
@@ -570,6 +570,18 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           const res = await fetch(`${parsed.apiBaseUrl}/repos/${parsed.owner}/${parsed.repo}`, {
             headers,
           });
+          app.log.debug(
+            {
+              status: res.status,
+              statusText: res.statusText,
+              url: res.url,
+              contentType: res.headers.get("content-type"),
+              platformRequested: "github",
+              owner: parsed.owner,
+              repo: parsed.repo,
+            },
+            "GitHub API response received",
+          );
           if (res.ok) {
             const contentType = res.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
@@ -616,6 +628,17 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           const res = await fetch(`${parsed.apiBaseUrl}/projects/${projectPath}`, {
             headers,
           });
+          app.log.debug(
+            {
+              status: res.status,
+              statusText: res.statusText,
+              url: res.url,
+              contentType: res.headers.get("content-type"),
+              platformRequested: "gitlab",
+              projectPath,
+            },
+            "GitLab API response received",
+          );
           if (res.ok) {
             const contentType = res.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
@@ -655,7 +678,16 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           }
         }
       } catch (err) {
-        app.log.error(err, "Repo validation failed");
+        app.log.error(
+          {
+            err,
+            repoUrl,
+            effectivePlatform,
+            errorMessage: err instanceof Error ? err.message : String(err),
+            errorStack: err instanceof Error ? err.stack : undefined,
+          },
+          "Repo validation failed with exception",
+        );
         reply.send({ valid: false, error: sanitizeError(err) });
       }
     },

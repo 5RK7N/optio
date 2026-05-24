@@ -410,14 +410,14 @@ export const api = {
       body: JSON.stringify({ key }),
     }),
 
-  validateRepo: (repoUrl: string, platformHint?: "github" | "gitlab", token?: string) =>
+  validateRepo: (repoUrl: string, effectivePlatform?: "github" | "gitlab", token?: string) =>
     request<{
       valid: boolean;
       error?: string;
       repo?: { fullName: string; defaultBranch: string; isPrivate: boolean };
     }>("/api/setup/validate/repo", {
       method: "POST",
-      body: JSON.stringify({ repoUrl, token, platformHint }),
+      body: JSON.stringify({ repoUrl, effectivePlatform, token }),
     }),
 
   getAuthStatus: () =>
