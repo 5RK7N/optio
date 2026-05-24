@@ -560,7 +560,14 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         let repoToken: string | null = token ?? null;
 
         if (parsed.platform === "github") {
-          if (!repoToken) repoToken = await retrieveSecret("GITHUB_TOKEN").catch(() => null);
+          if (!repoToken) {
+            try {
+              repoToken = await retrieveSecret("GITHUB_TOKEN");
+            } catch (err) {
+              app.log.error({ err, repoUrl, effectivePlatform }, "Failed to retrieve GITHUB_TOKEN");
+              repoToken = null;
+            }
+          }
           if (!repoToken && isGitHubAppConfigured()) {
             repoToken = await getInstallationToken().catch(() => null);
           }
@@ -621,7 +628,14 @@ export async function setupRoutes(rawApp: FastifyInstance) {
             reply.send({ valid: false, error: `GitHub repository not accessible (${res.status})` });
           }
         } else if (parsed.platform === "gitlab") {
-          if (!repoToken) repoToken = await retrieveSecret("GITLAB_TOKEN").catch(() => null);
+          if (!repoToken) {
+            try {
+              repoToken = await retrieveSecret("GITLAB_TOKEN");
+            } catch (err) {
+              app.log.error({ err, repoUrl, effectivePlatform }, "Failed to retrieve GITLAB_TOKEN");
+              repoToken = null;
+            }
+          }
           if (repoToken) headers["Authorization"] = `Bearer ${repoToken}`;
 
           const projectPath = encodeURIComponent(`${parsed.owner}/${parsed.repo}`);
