@@ -207,15 +207,36 @@ export async function retrieveSecret(
   if (!secret) throw new Error(`Secret not found: ${name} (scope: ${scope})`);
 
   const aad = buildSecretAAD(name, scope, workspaceId);
-  return decrypt(
-    {
-      alg: secret.alg ?? ALG_AES_256_GCM_V1,
-      iv: secret.iv,
-      ciphertext: secret.encryptedValue,
-      authTag: secret.authTag,
-    },
-    aad,
-  );
+  try {
+    return decrypt(
+      {
+        alg: secret.alg ?? ALG_AES_256_GCM_V1,
+        iv: secret.iv,
+        ciphertext: secret.encryptedValue,
+        authTag: secret.authTag,
+      },
+      aad,
+    );
+  } catch (err) {
+    // Log non-sensitive metadata to help debugging without leaking secret values
+    try {
+      console.error({
+        message: "Secret decryption failed",
+        name,
+        scope,
+        workspaceId: workspaceId ?? null,
+        userId: userId ?? null,
+        secretId: secret.id,
+        alg: secret.alg,
+        ivLength: secret.iv?.length,
+        authTagLength: secret.authTag?.length,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    } catch {
+      /* ignore logging errors */
+    }
+    throw err;
+  }
 }
 
 export async function listSecrets(
