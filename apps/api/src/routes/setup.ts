@@ -560,12 +560,12 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         let repoToken: string | null = token ?? null;
 
         if (parsed.platform === "github") {
-          headers["User-Agent"] = "Optio";
           if (!repoToken) repoToken = await retrieveSecret("GITHUB_TOKEN").catch(() => null);
           if (!repoToken && isGitHubAppConfigured()) {
             repoToken = await getInstallationToken().catch(() => null);
           }
           if (repoToken) headers["Authorization"] = `Bearer ${repoToken}`;
+          headers["User-Agent"] = "Optio";
 
           const res = await fetch(`${parsed.apiBaseUrl}/repos/${parsed.owner}/${parsed.repo}`, {
             headers,
@@ -576,7 +576,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
               return reply.send({
                 valid: false,
                 error:
-                  "Repo returned non-JSON response (possibly a login redirect or proxy error).",
+                  "GitHub returned non-JSON response (possibly a login redirect or proxy error).",
               });
             }
             const data = (await res.json()) as {

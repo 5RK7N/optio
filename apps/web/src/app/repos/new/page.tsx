@@ -105,8 +105,6 @@ export default function NewRepoPage() {
     // Try to fetch a token from secrets to validate private repos
     let token: string | undefined;
     try {
-      const secrets = await api.listSecrets("global");
-
       let tokenName: string | undefined;
       if (effectivePlatform === "github") {
         tokenName = "GITHUB_TOKEN";
@@ -114,6 +112,7 @@ export default function NewRepoPage() {
         tokenName = "GITLAB_TOKEN";
       }
 
+      const secrets = await api.listSecrets("global");
       if (tokenName) {
         token = secrets.secrets.find((s: any) => s.name === tokenName)?.value;
       }
