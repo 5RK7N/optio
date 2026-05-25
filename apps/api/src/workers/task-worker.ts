@@ -1757,10 +1757,14 @@ export function buildAgentCommand(
       const resumeFlag = opts?.resumeSessionId
         ? ` --session ${JSON.stringify(opts.resumeSessionId)}`
         : "";
-      return [
-        `echo "[optio] Running OpenCode (experimental)..."`,
+      const commands = [`echo "[optio] Running OpenCode (experimental)..."`];
+      if (env.OPENCODE_API_KEY) {
+        commands.push(`export OPENAI_API_KEY="$OPENCODE_API_KEY"`);
+      }
+      commands.push(
         `opencode run --format json${modelFlag}${agentFlag}${resumeFlag} "$OPTIO_PROMPT"`,
-      ];
+      );
+      return commands;
     }
     case "gemini": {
       const geminiModelFlag = env.OPTIO_GEMINI_MODEL
@@ -1848,7 +1852,7 @@ export function inferExitCode(agentType: string, logs: string): number {
       const hasErrorEvent = logs.includes('"type":"error"') || logs.includes('"type": "error"');
       const hasApiErrorEnvelope = /"error"\s*:\s*\{\s*"message"/.test(logs);
       const hasAuthError =
-        /ANTHROPIC_API_KEY|OPENAI_API_KEY|GROQ_API_KEY|invalid.*api.?key|unauthorized|authentication.*failed/i.test(
+        /ANTHROPIC_API_KEY|OPENAI_API_KEY|OPENCODE_API_KEY|GROQ_API_KEY|invalid.*api.?key|unauthorized|authentication.*failed/i.test(
           logs,
         );
       const hasModelError = /model_not_found|model.*not found|does not exist.*model/i.test(logs);
