@@ -126,6 +126,7 @@ export default function SetupPage() {
   );
   const [opencodeBaseUrl, setOpencodeBaseUrl] = useState("");
   const [opencodeDefaultModel, setOpencodeDefaultModel] = useState("");
+  const [opencodeApiKey, setOpencodeApiKey] = useState("");
 
   // Step 3b: Gemini
   const [geminiAuthMode, setGeminiAuthMode] = useState<"api-key" | "vertex-ai">("api-key");
@@ -580,6 +581,13 @@ export default function SetupPage() {
           await api.createSecret({
             name: "OPENCODE_DEFAULT_MODEL",
             value: opencodeDefaultModel.trim(),
+          });
+        }
+        if (opencodeApiKey.trim()) {
+          await api.createSecret({
+            name: "OPENCODE_API_KEY",
+            value: opencodeApiKey.trim(),
+            scope: agentSecretScope,
           });
         }
       }
@@ -1721,6 +1729,13 @@ export default function SetupPage() {
                             value={opencodeBaseUrl}
                             onChange={(e) => setOpencodeBaseUrl(e.target.value)}
                             placeholder="https://your-inference-server/v1"
+                            className="w-full px-3 py-2 rounded-md bg-bg-card border border-border text-sm focus:outline-none focus:border-primary"
+                          />
+                          <input
+                            type="password"
+                            value={opencodeApiKey}
+                            onChange={(e) => setOpencodeApiKey(e.target.value)}
+                            placeholder="API Key (optional)"
                             className="w-full px-3 py-2 rounded-md bg-bg-card border border-border text-sm focus:outline-none focus:border-primary"
                           />
                           <input

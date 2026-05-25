@@ -27,7 +27,7 @@ export class OpenCodeAdapter implements AgentAdapter {
     // OpenCode is provider-agnostic — it needs at least one provider API key.
     // Note: when opencodeBaseUrl is set, buildContainerConfig() skips requiredSecrets
     // and injects a placeholder key, so missing provider keys won't block execution.
-    const acceptedKeys = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY"];
+    const acceptedKeys = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "OPENCODE_API_KEY"];
     const hasAny = acceptedKeys.some((k) => availableSecrets.includes(k));
     return {
       valid: hasAny,
@@ -56,6 +56,8 @@ export class OpenCodeAdapter implements AgentAdapter {
     // secret exists. Without a custom base URL, require standard provider keys.
     if (!input.opencodeBaseUrl) {
       requiredSecrets.push("ANTHROPIC_API_KEY", "OPENAI_API_KEY");
+    } else {
+      requiredSecrets.push("OPENCODE_API_KEY");
     }
 
     const setupFiles: AgentContainerConfig["setupFiles"] = [];
@@ -74,6 +76,8 @@ export class OpenCodeAdapter implements AgentAdapter {
       env.OPENAI_BASE_URL = input.opencodeBaseUrl;
       // Local endpoints typically don't require a real API key — set a
       // placeholder that gets overridden if a real secret is configured.
+      // If OPENCODE_API_KEY is provided in the task-worker, it will overwrite this
+      // during the worker execution mapping. For local agent env seeding:
       env.OPENAI_API_KEY = "sk-no-key-required";
     }
 
@@ -239,7 +243,7 @@ function isRawTextError(line: string): boolean {
   // Auth / API key errors
   if (
     /error|failed|fatal/i.test(line) &&
-    /ANTHROPIC_API_KEY|OPENAI_API_KEY|GROQ_API_KEY|api.?key|authentication|unauthorized|forbidden/i.test(
+    /ANTHROPIC_API_KEY|OPENAI_API_KEY|GROQ_API_KEY|OPENCODE_API_KEY|api.?key|authentication|unauthorized|forbidden/i.test(
       line,
     )
   ) {

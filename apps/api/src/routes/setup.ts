@@ -128,7 +128,8 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       const hasCopilotToken = secretNames.includes("COPILOT_GITHUB_TOKEN");
 
       const hasOpencodeBaseUrl = secretNames.includes("OPENCODE_DEFAULT_BASE_URL");
-      const opencodeConfigured = hasAnthropicKey || hasOpenAIKey || hasOpencodeBaseUrl;
+      const hasOpencodeApiKey = secretNames.includes("OPENCODE_API_KEY");
+      const opencodeConfigured = hasAnthropicKey || hasOpenAIKey || hasOpencodeBaseUrl || hasOpencodeApiKey;
 
       const hasGeminiKey = secretNames.includes("GEMINI_API_KEY");
       // Vertex AI mode is signaled by GOOGLE_CLOUD_PROJECT (written by the
@@ -146,7 +147,8 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         hasCopilotToken ||
         hasGeminiKey ||
         hasGeminiVertexAi ||
-        hasOpencodeBaseUrl;
+        hasOpencodeBaseUrl ||
+        hasOpencodeApiKey;
 
       let runtimeHealthy = false;
       try {
