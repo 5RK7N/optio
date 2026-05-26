@@ -37,11 +37,21 @@ export async function getGitToken(
   // GitLab: try user-scoped token, then workspace/global GITLAB_TOKEN
   if (context.userId) {
     try {
-      return await retrieveSecretWithFallback(
-        "GITLAB_USER_ACCESS_TOKEN",
-        `user:${context.userId}`,
-        context.workspaceId,
-      );
+      try {
+        return await retrieveSecretWithFallback(
+          "GITLAB_USER_ACCESS_TOKEN",
+          "user",
+          context.workspaceId,
+          context.userId,
+        );
+      } catch {
+        // Fallback to legacy scope format
+        return await retrieveSecretWithFallback(
+          "GITLAB_USER_ACCESS_TOKEN",
+          `user:${context.userId}`,
+          context.workspaceId,
+        );
+      }
     } catch {
       logger.debug({ userId: context.userId }, "No user GitLab token, trying global");
     }

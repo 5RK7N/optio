@@ -264,8 +264,8 @@ describe("github-token-service", () => {
     const token = await getGitHubToken({ userId: "user-1" });
 
     expect(token).toBe("ghu_valid_token");
-    expect(mockRetrieveSecret).toHaveBeenCalledWith("GITHUB_USER_ACCESS_TOKEN", "user:user-1");
-    expect(mockRetrieveSecret).toHaveBeenCalledWith("GITHUB_USER_TOKEN_EXPIRES_AT", "user:user-1");
+    expect(mockRetrieveSecret).toHaveBeenCalledWith("GITHUB_USER_ACCESS_TOKEN", "user", undefined, "user-1");
+    expect(mockRetrieveSecret).toHaveBeenCalledWith("GITHUB_USER_TOKEN_EXPIRES_AT", "user", undefined, "user-1");
   });
 
   it("refreshes expired user token", async () => {
@@ -344,7 +344,7 @@ describe("github-token-service", () => {
     const token = await getGitHubToken({ taskId: "task-1" });
 
     expect(token).toBe("ghu_task_user_token");
-    expect(mockRetrieveSecret).toHaveBeenCalledWith("GITHUB_USER_ACCESS_TOKEN", "user:user-5");
+    expect(mockRetrieveSecret).toHaveBeenCalledWith("GITHUB_USER_ACCESS_TOKEN", "user", undefined, "user-5");
   });
 
   it("returns installation token when GitHub App is configured (server context)", async () => {
@@ -383,24 +383,33 @@ describe("github-token-service", () => {
     expect(mockStoreSecret).toHaveBeenCalledWith(
       "GITHUB_USER_ACCESS_TOKEN",
       "ghu_access",
-      "user:user-6",
+      "user",
+      undefined,
+      "user-6"
     );
     expect(mockStoreSecret).toHaveBeenCalledWith(
       "GITHUB_USER_REFRESH_TOKEN",
       "ghr_refresh",
-      "user:user-6",
+      "user",
+      undefined,
+      "user-6"
     );
     expect(mockStoreSecret).toHaveBeenCalledWith(
       "GITHUB_USER_TOKEN_EXPIRES_AT",
       expect.any(String),
-      "user:user-6",
+      "user",
+      undefined,
+      "user-6"
     );
   });
 
   it("deleteUserGitHubTokens deletes 3 secrets", async () => {
     await deleteUserGitHubTokens("user-7");
 
-    expect(mockDeleteSecret).toHaveBeenCalledTimes(3);
+    expect(mockDeleteSecret).toHaveBeenCalledTimes(6);
+    expect(mockDeleteSecret).toHaveBeenCalledWith("GITHUB_USER_ACCESS_TOKEN", "user", undefined, "user-7");
+    expect(mockDeleteSecret).toHaveBeenCalledWith("GITHUB_USER_REFRESH_TOKEN", "user", undefined, "user-7");
+    expect(mockDeleteSecret).toHaveBeenCalledWith("GITHUB_USER_TOKEN_EXPIRES_AT", "user", undefined, "user-7");
     expect(mockDeleteSecret).toHaveBeenCalledWith("GITHUB_USER_ACCESS_TOKEN", "user:user-7");
     expect(mockDeleteSecret).toHaveBeenCalledWith("GITHUB_USER_REFRESH_TOKEN", "user:user-7");
     expect(mockDeleteSecret).toHaveBeenCalledWith("GITHUB_USER_TOKEN_EXPIRES_AT", "user:user-7");
