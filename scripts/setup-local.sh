@@ -78,23 +78,18 @@ fi
 echo "[5/6] Deploying Optio to Kubernetes via Helm..."
 ENCRYPTION_KEY=$(openssl rand -hex 32)
 
-helm upgrade -i optio helm/optio -n optio \
-  -f helm/optio/values.local.yaml \
-  --set encryption.key="$ENCRYPTION_KEY" \
-  --wait --timeout=120s
-
-# if helm status optio -n optio &>/dev/null; then
-#   echo "   Existing release found, upgrading..."
-#   helm upgrade optio helm/optio -n optio \
-#     -f helm/optio/values.local.yaml \
-#     --set encryption.key="$ENCRYPTION_KEY" \
-#     --wait --timeout=120s
-# else
-#   helm install optio helm/optio -n optio --create-namespace \
-#     -f helm/optio/values.local.yaml \
-#     --set encryption.key="$ENCRYPTION_KEY" \
-#     --wait --timeout=120s
-# fi
+if helm status optio -n optio &>/dev/null; then
+  echo "   Existing release found, upgrading..."
+  helm upgrade optio helm/optio -n optio \
+    -f helm/optio/values.local.yaml \
+    --set encryption.key="$ENCRYPTION_KEY" \
+    --wait --timeout=120s
+else
+  helm install optio helm/optio -n optio --create-namespace \
+    -f helm/optio/values.local.yaml \
+    --set encryption.key="$ENCRYPTION_KEY" \
+    --wait --timeout=120s
+fi
 echo "   Helm deployment complete."
 
 echo "[6/6] Verifying deployment..."

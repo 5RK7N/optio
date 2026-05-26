@@ -107,12 +107,10 @@ export function buildWorkflowAgentCommand(
       const modelFlag = env.OPTIO_OPENCODE_MODEL
         ? ` --model ${JSON.stringify(env.OPTIO_OPENCODE_MODEL)}`
         : "";
-      const commands = [`echo "[optio] Running workflow agent (OpenCode)..."`];
-      if (env.OPENCODE_API_KEY) {
-        commands.push(`export OPENAI_API_KEY="$OPENCODE_API_KEY"`);
-      }
-      commands.push(`opencode run --format json${modelFlag} "$OPTIO_PROMPT"`);
-      return commands;
+      return [
+        `echo "[optio] Running workflow agent (OpenCode)..."`,
+        `opencode run --format json${modelFlag} "$OPTIO_PROMPT"`,
+      ];
     }
     case "gemini": {
       const geminiModelFlag = env.OPTIO_GEMINI_MODEL

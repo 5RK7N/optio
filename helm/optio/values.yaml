@@ -98,8 +98,10 @@ web:
     targetMemoryUtilizationPercentage: ""
   # Additional env vars for the web deployment (opt-in)
   extraEnv: []
+  # - name: EXAMPLE_ENV_VAR
+  #   value: "example value"
   # - name: DEBUG
-  #   value: "*"
+  #   value: *
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Optio Operations Assistant Pod
@@ -514,14 +516,3 @@ serviceAccount:
 # ──────────────────────────────────────────────────────────────────────────────
 imagePullSecrets: []
 #  - name: my-registry-secret
-
-# ──────────────────────────────────────────────────────────────────────────────
-# DNS Configuration
-# Applied to api, web, and optio deployment pods.
-# ──────────────────────────────────────────────────────────────────────────────
-dnsConfig: {}
-  # nameservers:
-  #   - 192.168.0.1
-  # options:
-  #   - name: ndots
-  #     value: "1"

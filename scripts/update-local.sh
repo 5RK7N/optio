@@ -86,7 +86,7 @@ echo "   Images built."
 
 # Rolling restart
 echo "[4/4] Restarting deployments..."
-helm upgrade -i optio helm/optio -n optio -f helm/optio/values.local.yaml 
+helm upgrade optio helm/optio -n optio -f helm/optio/values.local.yaml --reset-then-reuse-values
 
 DEPLOYMENTS="deployment/optio-api deployment/optio-web"
 if kubectl get deployment optio-optio -n optio &>/dev/null; then

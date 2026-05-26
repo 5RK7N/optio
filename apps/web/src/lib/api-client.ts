@@ -339,7 +339,7 @@ export const api = {
       steps: Record<string, { done: boolean; label: string }>;
     }>("/api/setup/status"),
 
-  listGithubRepos: (token: string) =>
+  listUserRepos: (token: string) =>
     request<{
       repos: Array<{
         fullName: string;
@@ -352,7 +352,7 @@ export const api = {
         pushedAt: string;
       }>;
       error?: string;
-    }>("/api/setup/repos/github", {
+    }>("/api/setup/repos", {
       method: "POST",
       body: JSON.stringify({ token }),
     }),
@@ -410,20 +410,15 @@ export const api = {
       body: JSON.stringify({ key }),
     }),
 
-  validateRepo: (repoUrl: string, effectivePlatform?: "github" | "gitlab", token?: string) => {
-    const endpoint =
-      effectivePlatform === "gitlab"
-        ? "/api/setup/validate/repo/gitlab"
-        : "/api/setup/validate/repo/github";
-    return request<{
+  validateRepo: (repoUrl: string, token?: string) =>
+    request<{
       valid: boolean;
       error?: string;
       repo?: { fullName: string; defaultBranch: string; isPrivate: boolean };
-    }>(endpoint, {
+    }>("/api/setup/validate/repo", {
       method: "POST",
       body: JSON.stringify({ repoUrl, token }),
-    });
-  },
+    }),
 
   getAuthStatus: () =>
     request<{

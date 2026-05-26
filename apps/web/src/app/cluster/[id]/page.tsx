@@ -72,10 +72,7 @@ export default function PodDetailPage({ params }: { params: Promise<{ id: string
 
   const runtimeState = pod.runtimeStatus?.state ?? pod.state;
   const repoName =
-    pod.repoUrl
-      ?.replace(/.*:\/\/[^/]+\//, "")
-      .replace(/.*@[^:]+:/, "")
-      .replace(/\.git$/, "") ?? pod.repoUrl;
+    pod.repoUrl?.replace(/.*github\.com[/:]/, "").replace(/\.git$/, "") ?? pod.repoUrl;
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">

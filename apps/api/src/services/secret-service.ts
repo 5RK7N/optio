@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { secrets } from "../db/schema.js";
-import { type SecretRef, registerGitLabHost, unregisterGitLabHost } from "@optio/shared";
+import type { SecretRef } from "@optio/shared";
 
 const ALGORITHM = "aes-256-gcm";
 
@@ -133,10 +133,6 @@ export async function storeSecret(
   const aad = buildSecretAAD(name, scope, workspaceId);
   const { alg, ciphertext, iv, authTag } = encrypt(value, aad);
 
-  if (name === "GITLAB_HOST") {
-    registerGitLabHost(value);
-  }
-
   // Build conditions for lookup
   const conditions = [eq(secrets.name, name), eq(secrets.scope, scope)];
   if (workspaceId) {
@@ -207,36 +203,15 @@ export async function retrieveSecret(
   if (!secret) throw new Error(`Secret not found: ${name} (scope: ${scope})`);
 
   const aad = buildSecretAAD(name, scope, workspaceId);
-  try {
-    return decrypt(
-      {
-        alg: secret.alg ?? ALG_AES_256_GCM_V1,
-        iv: secret.iv,
-        ciphertext: secret.encryptedValue,
-        authTag: secret.authTag,
-      },
-      aad,
-    );
-  } catch (err) {
-    // Log non-sensitive metadata to help debugging without leaking secret values
-    try {
-      console.error({
-        message: "Secret decryption failed",
-        name,
-        scope,
-        workspaceId: workspaceId ?? null,
-        userId: userId ?? null,
-        secretId: secret.id,
-        alg: secret.alg,
-        ivLength: secret.iv?.length,
-        authTagLength: secret.authTag?.length,
-        err: err instanceof Error ? err.message : String(err),
-      });
-    } catch {
-      /* ignore logging errors */
-    }
-    throw err;
-  }
+  return decrypt(
+    {
+      alg: secret.alg ?? ALG_AES_256_GCM_V1,
+      iv: secret.iv,
+      ciphertext: secret.encryptedValue,
+      authTag: secret.authTag,
+    },
+    aad,
+  );
 }
 
 export async function listSecrets(
@@ -278,27 +253,7 @@ export async function deleteSecret(
   if (userId) {
     conditions.push(eq(secrets.userId, userId));
   }
-
-  // If deleting a GITLAB_HOST entry, try to read its value first so we can
-  // unregister the dynamic host from the in-memory registry.
-  let oldValue: string | null = null;
-  if (name === "GITLAB_HOST") {
-    try {
-      oldValue = await retrieveSecret(name, scope, workspaceId, userId);
-    } catch {
-      /* ignore */
-    }
-  }
-
   await db.delete(secrets).where(and(...conditions));
-
-  if (name === "GITLAB_HOST" && oldValue) {
-    try {
-      unregisterGitLabHost(oldValue);
-    } catch {
-      /* ignore */
-    }
-  }
 }
 
 /**

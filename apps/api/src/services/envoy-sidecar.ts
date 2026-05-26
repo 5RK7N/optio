@@ -179,7 +179,7 @@ export function generateEnvoyConfig(secrets: SecretProxySecrets): string {
                           name: gitlab-token
                           sds_config:
                             path: /dev/null
-                        header: "Authorization"`);
+                        header: "PRIVATE-TOKEN"`);
   }
 
   if (secrets.anthropicApiKey) {
