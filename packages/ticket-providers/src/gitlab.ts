@@ -40,7 +40,7 @@ export class GitLabTicketProvider implements TicketProvider {
   }
 
   private headers(config: GitLabProviderConfig): Record<string, string> {
-    return { Authorization: `Bearer ${config.token}`, "Content-Type": "application/json" };
+    return { "PRIVATE-TOKEN": config.token, "Content-Type": "application/json" };
   }
 
   async fetchActionableTickets(config: TicketProviderConfig): Promise<Ticket[]> {

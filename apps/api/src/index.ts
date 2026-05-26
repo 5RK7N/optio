@@ -97,18 +97,8 @@ async function main() {
   }
 
   // Validate encryption key before anything else — fail fast on weak/missing keys
-  const { validateEncryptionKey, retrieveSecretWithFallback } =
-    await import("./services/secret-service.js");
+  const { validateEncryptionKey } = await import("./services/secret-service.js");
   validateEncryptionKey();
-
-  // Load dynamically registered GitLab hosts
-  const { registerGitLabHost } = await import("@optio/shared");
-  const knownGitLabHost = await retrieveSecretWithFallback("GITLAB_HOST", "global").catch(
-    () => null,
-  );
-  if (knownGitLabHost) {
-    registerGitLabHost(knownGitLabHost as string);
-  }
 
   // Run database migrations before anything else.
   // Uses a custom runner instead of Drizzle's built-in migrate() because

@@ -7,7 +7,6 @@ import { isSubscriptionAvailable } from "../services/auth-service.js";
 import { isGitHubAppConfigured, getInstallationToken } from "../services/github-app-service.js";
 import { isAuthDisabled } from "../services/oauth/index.js";
 import { ErrorResponseSchema } from "../schemas/common.js";
-import { parseRepoUrl } from "@optio/shared";
 
 const tokenSchema = z.object({ token: z.string().min(1) }).describe("Body with a required token");
 const gitlabTokenSchema = z
@@ -128,8 +127,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       const hasCopilotToken = secretNames.includes("COPILOT_GITHUB_TOKEN");
 
       const hasOpencodeBaseUrl = secretNames.includes("OPENCODE_DEFAULT_BASE_URL");
-      const hasOpencodeApiKey = secretNames.includes("OPENCODE_API_KEY");
-      const opencodeConfigured = hasAnthropicKey || hasOpenAIKey || hasOpencodeBaseUrl || hasOpencodeApiKey;
+      const opencodeConfigured = hasAnthropicKey || hasOpenAIKey || hasOpencodeBaseUrl;
 
       const hasGeminiKey = secretNames.includes("GEMINI_API_KEY");
       // Vertex AI mode is signaled by GOOGLE_CLOUD_PROJECT (written by the
@@ -147,8 +145,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         hasCopilotToken ||
         hasGeminiKey ||
         hasGeminiVertexAi ||
-        hasOpencodeBaseUrl ||
-        hasOpencodeApiKey;
+        hasOpencodeBaseUrl;
 
       let runtimeHealthy = false;
       try {
@@ -236,10 +233,10 @@ export async function setupRoutes(rawApp: FastifyInstance) {
     },
     async (req, reply) => {
       const { token, host } = req.body;
-      const gitlabHost = (host ?? "gitlab.com").replace(/\/+$/, "");
+      const gitlabHost = host ?? "gitlab.com";
       try {
         const res = await fetch(`https://${gitlabHost}/api/v4/user`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { "PRIVATE-TOKEN": token, "User-Agent": "Optio" },
         });
         if (!res.ok) {
           return reply.send({ valid: false, error: `GitLab returned ${res.status}` });
@@ -247,7 +244,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         const user = (await res.json()) as { username: string; name: string };
         reply.send({ valid: true, user: { login: user.username, name: user.name } });
       } catch (err) {
-        app.log.error(err, "GitLab token validation failed.");
+        app.log.error(err, "GitLab token validation failed");
         reply.send({ valid: false, error: sanitizeError(err) });
       }
     },
@@ -402,7 +399,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
   );
 
   app.post(
-    "/api/setup/repos/github",
+    "/api/setup/repos",
     {
       config: { rateLimit: SETUP_POST_RATE_LIMIT },
       preHandler: [requireAdminWhenAuthenticated],
@@ -493,11 +490,11 @@ export async function setupRoutes(rawApp: FastifyInstance) {
     },
     async (req, reply) => {
       const { token, host } = req.body;
-      const gitlabHost = (host ?? "gitlab.com").replace(/\/+$/, "");
+      const gitlabHost = host ?? "gitlab.com";
       try {
         const res = await fetch(
           `https://${gitlabHost}/api/v4/projects?membership=true&order_by=last_activity_at&sort=desc&per_page=20`,
-          { headers: { Authorization: `Bearer ${token}` } },
+          { headers: { "PRIVATE-TOKEN": token, "User-Agent": "Optio" } },
         );
         if (!res.ok) {
           return reply.send({ repos: [], error: `GitLab returned ${res.status}` });
@@ -533,12 +530,12 @@ export async function setupRoutes(rawApp: FastifyInstance) {
   );
 
   app.post(
-    "/api/setup/validate/repo/github",
+    "/api/setup/validate/repo",
     {
       config: { rateLimit: SETUP_POST_RATE_LIMIT },
       preHandler: [requireAdminWhenAuthenticated],
       schema: {
-        operationId: "validateGithubRepoAccess",
+        operationId: "validateRepoAccess",
         summary: "Validate access to a specific repo",
         description:
           "Check whether Optio can access a given GitHub repo URL using the " +
@@ -585,107 +582,6 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         }
       } catch (err) {
         app.log.error(err, "Repo validation failed");
-        reply.send({ valid: false, error: sanitizeError(err) });
-      }
-    },
-  );
-
-  app.post(
-    "/api/setup/validate/repo/gitlab",
-    {
-      config: { rateLimit: SETUP_POST_RATE_LIMIT },
-      preHandler: [requireAdminWhenAuthenticated],
-      schema: {
-        operationId: "validateGitlabRepoAccess",
-        summary: "Validate access to a specific repo",
-        description:
-          "Check whether Optio can access a given GitLab repo URL using the " + "supplied token",
-        tags: ["Setup & Settings"],
-        body: validateRepoSchema,
-        response: { 200: ValidationResultSchema, 400: ErrorResponseSchema },
-      },
-    },
-    async (req, reply) => {
-      const { repoUrl, token } = req.body;
-
-      try {
-        const parsed = parseRepoUrl(repoUrl, "gitlab");
-        if (!parsed) {
-          return reply.send({ valid: false, error: "Could not parse repository URL" });
-        }
-
-        const headers: Record<string, string> = {};
-        let repoToken: string | null = token ?? null;
-        if (!repoToken) {
-          try {
-            repoToken = await retrieveSecret("GITLAB_TOKEN");
-          } catch (err) {
-            app.log.error({ err, repoUrl }, "Failed to retrieve GITLAB_TOKEN");
-            repoToken = null;
-          }
-        }
-        if (repoToken) headers["Authorization"] = `Bearer ${repoToken}`;
-
-        const projectPath = encodeURIComponent(`${parsed.owner}/${parsed.repo}`);
-        const res = await fetch(`${parsed.apiBaseUrl}/projects/${projectPath}`, { headers });
-        app.log.debug(
-          {
-            status: res.status,
-            statusText: res.statusText,
-            url: res.url,
-            contentType: res.headers.get("content-type"),
-            platformRequested: "gitlab",
-            projectPath,
-          },
-          "GitLab API response received",
-        );
-        if (res.ok) {
-          const contentType = res.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            return reply.send({
-              valid: false,
-              error: "GitLab returned non-JSON response (possibly a login redirect).",
-            });
-          }
-          const data = (await res.json()) as {
-            path_with_namespace: string;
-            default_branch: string;
-            visibility: string;
-          };
-          reply.send({
-            valid: true,
-            repo: {
-              fullName: data.path_with_namespace,
-              defaultBranch: data.default_branch,
-              isPrivate: data.visibility !== "public",
-            },
-          });
-        } else {
-          app.log.warn({ status: res.status, url: res.url }, "GitLab repository not accessible.");
-          if (res.status === 401 || res.status === 403) {
-            return reply.send({
-              valid: false,
-              error: `GitLab authentication failed (${res.status}). Ensure GITLAB_TOKEN secret is valid and has API access.`,
-            });
-          }
-          if (res.status >= 300 && res.status < 400) {
-            return reply.send({
-              valid: false,
-              error: `GitLab returned a redirect (${res.status}). This often means a proxy is blocking access or requesting SSO login.`,
-            });
-          }
-          reply.send({ valid: false, error: `GitLab repository not accessible (${res.status})` });
-        }
-      } catch (err) {
-        app.log.error(
-          {
-            err,
-            repoUrl,
-            errorMessage: err instanceof Error ? err.message : String(err),
-            errorStack: err instanceof Error ? err.stack : undefined,
-          },
-          "Repo validation failed with exception",
-        );
         reply.send({ valid: false, error: sanitizeError(err) });
       }
     },

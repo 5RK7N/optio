@@ -47,41 +47,6 @@ const BUILT_IN_PROVIDERS: Array<{
     capabilities: ["search_pages", "read_page", "list_databases", "query_database"],
   },
   {
-    slug: "gitlab-enhanced",
-    name: "GitLab (Enhanced)",
-    description:
-      "Access GitLab issues, merge requests, and repository content natively. Supports self-hosted endpoints.",
-    icon: "gitlab",
-    category: "productivity",
-    type: "mcp",
-    configSchema: {
-      type: "object",
-      properties: {
-        GITLAB_API_URL: {
-          type: "string",
-          title: "GitLab API URL (e.g., https://gitlab.com/api/v4)",
-          default: "https://gitlab.com/api/v4",
-        },
-        GITLAB_PERSONAL_ACCESS_TOKEN: {
-          type: "string",
-          title: "GitLab Personal Access Token",
-          format: "secret",
-        },
-      },
-      required: ["GITLAB_API_URL", "GITLAB_PERSONAL_ACCESS_TOKEN"],
-    },
-    requiredSecrets: ["GITLAB_PERSONAL_ACCESS_TOKEN"],
-    mcpConfig: {
-      command: "npx",
-      args: ["-y", "@modelcontextprotocol/server-gitlab"],
-      envMapping: {
-        GITLAB_API_URL: "GITLAB_API_URL",
-        GITLAB_PERSONAL_ACCESS_TOKEN: "GITLAB_PERSONAL_ACCESS_TOKEN",
-      },
-    },
-    capabilities: ["search_repos", "read_issues", "create_issue", "read_prs", "read_files"],
-  },
-  {
     slug: "github-enhanced",
     name: "GitHub (Enhanced)",
     description: "Access GitHub issues, discussions, PRs, and repository content beyond git",
@@ -370,39 +335,10 @@ export async function createProvider(
  * Uses upsert on the (slug, workspaceId) unique constraint.
  */
 export async function seedBuiltInProviders(): Promise<void> {
-  const { inArray } = await import("drizzle-orm");
   for (const provider of BUILT_IN_PROVIDERS) {
-    const existing = await db
-      .select({ id: connectionProviders.id })
-      .from(connectionProviders)
-      .where(
-        and(eq(connectionProviders.slug, provider.slug), isNull(connectionProviders.workspaceId)),
-      );
-
-    if (existing.length > 0) {
-      if (existing.length > 1) {
-        const toDelete = existing.slice(1).map((r) => r.id);
-        await db.delete(connectionProviders).where(inArray(connectionProviders.id, toDelete));
-      }
-
-      await db
-        .update(connectionProviders)
-        .set({
-          name: provider.name,
-          description: provider.description,
-          icon: provider.icon,
-          category: provider.category,
-          type: provider.type,
-          configSchema: provider.configSchema,
-          requiredSecrets: provider.requiredSecrets,
-          mcpConfig: provider.mcpConfig ?? undefined,
-          capabilities: provider.capabilities,
-          builtIn: true,
-          updatedAt: new Date(),
-        })
-        .where(eq(connectionProviders.id, existing[0].id));
-    } else {
-      await db.insert(connectionProviders).values({
+    await db
+      .insert(connectionProviders)
+      .values({
         slug: provider.slug,
         name: provider.name,
         description: provider.description,
@@ -415,8 +351,23 @@ export async function seedBuiltInProviders(): Promise<void> {
         capabilities: provider.capabilities,
         builtIn: true,
         workspaceId: undefined, // built-in providers have NULL workspaceId
+      })
+      .onConflictDoUpdate({
+        target: [connectionProviders.slug, connectionProviders.workspaceId],
+        set: {
+          name: provider.name,
+          description: provider.description,
+          icon: provider.icon,
+          category: provider.category,
+          type: provider.type,
+          configSchema: provider.configSchema,
+          requiredSecrets: provider.requiredSecrets,
+          mcpConfig: provider.mcpConfig ?? undefined,
+          capabilities: provider.capabilities,
+          builtIn: true,
+          updatedAt: new Date(),
+        },
       });
-    }
   }
 }
 
