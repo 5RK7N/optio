@@ -294,76 +294,81 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # merge-agent-presets:
-  #   name: Merge agent-${{ matrix.preset }} manifest
-  #   needs: build-agent-presets
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       preset: [node, python, go, rust, full]
-  #   steps:
-  #     - name: Download digests
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         path: /tmp/digests
-  #         pattern: digests-agent-${{ matrix.preset }}-*
-  #         merge-multiple: true
+  merge-agent-presets:
+    name: Merge agent-${{ matrix.preset }} manifest
+    needs: build-agent-presets
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        preset: [node, python, go, rust, full]
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-agent-${{ matrix.preset }}-*
+          merge-multiple: true
 
-  #     - name: Log in to GHCR
-  #       uses: docker/login-action@v3
-  #       with:
-  #         registry: ${{ env.REGISTRY }}
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  #     - name: Set up Docker Buildx
-  #       uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-  #     - name: Docker metadata
-  #       id: meta
-  #       uses: docker/metadata-action@v5
-  #       with:
-  #         images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/optio-agent-${{ matrix.preset }}
-  #         tags: |
-  #           type=semver,pattern={{version}}
-  #           type=semver,pattern={{major}}.{{minor}}
-  #           type=raw,value=latest,enable={{is_default_branch}}
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/optio-agent-${{ matrix.preset }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
-  #     - name: Create manifest
-  #       working-directory: /tmp/digests
-  #       run: |
-  #         docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-  #           $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/optio-agent-${{ matrix.preset }}@sha256:%s ' *)
+      - name: Create manifest
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/optio-agent-${{ matrix.preset }}@sha256:%s ' *)
 
-  #     - name: Inspect manifest
-  #       run: |
-  #         docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/optio-agent-${{ matrix.preset }}:${{ steps.meta.outputs.version }}
+      - name: Inspect manifest
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/optio-agent-${{ matrix.preset }}:${{ steps.meta.outputs.version }}
 
-  # # ── Helm chart OCI artifact ────────────────────────────────────────────────
-  # publish-chart:
-  #   name: Publish Helm chart
-  #   runs-on: ubuntu-latest
-  #   needs: [merge-services, merge-agent-presets]
-  #   steps:
-  #     - uses: actions/checkout@v4
+  # ── Helm chart OCI artifact ────────────────────────────────────────────────
+  publish-chart:
+    name: Publish Helm chart
+    runs-on: ubuntu-latest
+    needs: [merge-services, merge-agent-presets]
+    steps:
+      - uses: actions/checkout@v4
 
-  #     - name: Install Helm
-  #       uses: azure/setup-helm@v4
+      - name: Install Helm
+        uses: azure/setup-helm@v4
 
-  #     - name: Log in to GHCR (Helm OCI)
-  #       run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+      - name: Log in to GHCR (Helm OCI)
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
-  #     - name: Extract version from tag
-  #       id: version
-  #       run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "branch" ]]; then
+            echo "version=0.0.0-${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
 
-  #     - name: Update Chart.yaml version
-  #       run: |
-  #         sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" helm/optio/Chart.yaml
-  #         sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.version }}\"/" helm/optio/Chart.yaml
+      - name: Update Chart.yaml version
+        run: |
+          sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" helm/optio/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.version }}\"/" helm/optio/Chart.yaml
 
-  #     - name: Package chart
-  #       run: helm package helm/optio --destination .helm-pkg
+      - name: Package chart
+        run: helm package helm/optio --destination .helm-pkg
 
-  #     - name: Push chart to GHCR
-  #       run: helm push .helm-pkg/optio-${{ steps.version.outputs.version }}.tgz oci://${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}
+      - name: Push chart to GHCR
+        run: helm push .helm-pkg/optio-${{ steps.version.outputs.version }}.tgz oci://${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}
