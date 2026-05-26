@@ -3,6 +3,19 @@ import type { GitPlatformType, RepoIdentifier } from "../types/git-platform.js";
 const GITHUB_HOSTS = new Set(["github.com"]);
 
 /**
+ * Dynamically registered GitLab hosts (e.g. from the database at runtime)
+ */
+const dynamicGitLabHosts = new Set<string>();
+
+export function registerGitLabHost(host: string) {
+  if (host) dynamicGitLabHosts.add(host.trim().toLowerCase());
+}
+
+export function unregisterGitLabHost(host: string) {
+  if (!host) return;
+  dynamicGitLabHosts.delete(host.trim().toLowerCase());
+}
+/**
  * GITLAB_HOSTS (plural): comma-separated list of all known GitLab hostnames,
  * used for platform detection when parsing repository URLs.
  * Distinct from GITLAB_HOST (singular) which is the specific GitLab host
@@ -19,6 +32,9 @@ function getGitLabHosts(): Set<string> {
       const trimmed = h.trim().toLowerCase();
       if (trimmed) hosts.add(trimmed);
     }
+  }
+  for (const h of dynamicGitLabHosts) {
+    hosts.add(h);
   }
   return hosts;
 }
@@ -110,12 +126,12 @@ function cleanOwnerRepo(
  * Parse a git repository URL into a RepoIdentifier.
  * Detects platform from the host (github.com → github, gitlab.com or GITLAB_HOSTS → gitlab).
  */
-export function parseRepoUrl(url: string): RepoIdentifier | null {
+export function parseRepoUrl(url: string, platformHint?: GitPlatformType): RepoIdentifier | null {
   const extracted = extractParts(url);
   if (!extracted) return null;
 
   const host = extracted.host.toLowerCase();
-  const platform = detectPlatform(host);
+  const platform = platformHint ?? detectPlatform(host);
 
   const ownerRepo = cleanOwnerRepo(extracted.path, platform);
   if (!ownerRepo) return null;

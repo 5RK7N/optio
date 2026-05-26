@@ -323,8 +323,8 @@ const MIGRATED_ROUTES: MigratedRoute[] = [
   // analytics.ts (1)
   { method: "get", path: "/api/analytics/costs" },
 
-  // Phase 7 — setup, secrets, optio, cluster (28 routes)
-  // setup.ts (10)
+  // Phase 7 — setup, secrets, optio, cluster (29 routes)
+  // setup.ts (11)
   { method: "get", path: "/api/setup/status" },
   { method: "post", path: "/api/setup/validate/github-token" },
   { method: "post", path: "/api/setup/validate/gitlab-token" },
@@ -332,9 +332,10 @@ const MIGRATED_ROUTES: MigratedRoute[] = [
   { method: "post", path: "/api/setup/validate/copilot-token" },
   { method: "post", path: "/api/setup/validate/openai-key" },
   { method: "post", path: "/api/setup/validate/gemini-key" },
-  { method: "post", path: "/api/setup/repos" },
+  { method: "post", path: "/api/setup/repos/github" },
   { method: "post", path: "/api/setup/repos/gitlab" },
-  { method: "post", path: "/api/setup/validate/repo" },
+  { method: "post", path: "/api/setup/validate/repo/github" },
+  { method: "post", path: "/api/setup/validate/repo/gitlab" },
   // secrets.ts (3)
   { method: "get", path: "/api/secrets" },
   { method: "post", path: "/api/secrets" },
@@ -417,7 +418,7 @@ describe("OpenAPI spec — migrated routes are fully documented", () => {
   it("migrated routes count matches the sum of completed phases", () => {
     // Removed 14 routes (8 schedule + 6 task-template) that were redundant
     // with agent workflows. 183 - 14 = 169.
-    expect(MIGRATED_ROUTES).toHaveLength(169);
+    expect(MIGRATED_ROUTES).toHaveLength(170);
   });
 
   it("components.schemas contains the Task domain types", () => {

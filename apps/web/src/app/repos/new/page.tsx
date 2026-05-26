@@ -17,6 +17,7 @@ import {
   Globe,
   Search,
   AlertCircle,
+  Github,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -41,6 +42,7 @@ export default function NewRepoPage() {
 
   // Step 1: Repo
   const [repoUrl, setRepoUrl] = useState("");
+  const [platformHint, setPlatformHint] = useState<"github" | "gitlab" | "">("");
   const [fullName, setFullName] = useState("");
   const [defaultBranch, setDefaultBranch] = useState("main");
   const [isPrivate, setIsPrivate] = useState(false);
@@ -81,21 +83,27 @@ export default function NewRepoPage() {
     setValidating(true);
     setValidationError("");
     setValidated(false);
-    try {
-      // Try to get GitHub token from secrets for private repos
-      let token: string | undefined;
-      try {
-        const secrets = await api.listSecrets("global");
-        const ghSecret = secrets.secrets.find((s: any) => s.name === "GITHUB_TOKEN");
-        if (ghSecret) {
-          // Token exists but we can't read the value — the validate endpoint will use it server-side
-          token = undefined;
-        }
-      } catch {
-        // No secrets access, that's fine
-      }
 
-      const res = await api.validateRepo(repoUrl, token);
+    // Determine repository platform from URL or user hint
+    const effectivePlatform =
+      platformHint ||
+      (repoUrl.includes("github.com")
+        ? "github"
+        : repoUrl.includes("gitlab.com")
+          ? "gitlab"
+          : undefined);
+
+    // If we can't determine the platform, prompt the user to specify it
+    if (!effectivePlatform) {
+      setValidationError(
+        "Could not auto-detect repository provider. Please select GitHub or GitLab.",
+      );
+      setValidating(false);
+      return;
+    }
+
+    try {
+      const res = await api.validateRepo(repoUrl, effectivePlatform);
       if (res.valid && res.repo) {
         setFullName(res.repo.fullName);
         setDefaultBranch(res.repo.defaultBranch);
@@ -104,8 +112,8 @@ export default function NewRepoPage() {
       } else {
         setValidationError(res.error || "Could not access repository");
       }
-    } catch {
-      setValidationError("Failed to validate repository");
+    } catch (err: any) {
+      setValidationError(err.message || "Failed to validate repository");
     } finally {
       setValidating(false);
     }
@@ -221,6 +229,8 @@ export default function NewRepoPage() {
           <RepoStep
             repoUrl={repoUrl}
             setRepoUrl={setRepoUrl}
+            platformHint={platformHint}
+            setPlatformHint={setPlatformHint}
             fullName={fullName}
             defaultBranch={defaultBranch}
             isPrivate={isPrivate}
@@ -327,6 +337,8 @@ export default function NewRepoPage() {
 function RepoStep({
   repoUrl,
   setRepoUrl,
+  platformHint,
+  setPlatformHint,
   fullName,
   defaultBranch,
   isPrivate,
@@ -338,6 +350,8 @@ function RepoStep({
 }: {
   repoUrl: string;
   setRepoUrl: (v: string) => void;
+  platformHint: "github" | "gitlab" | "";
+  setPlatformHint: (v: "github" | "gitlab" | "") => void;
   fullName: string;
   defaultBranch: string;
   isPrivate: boolean;
@@ -347,13 +361,46 @@ function RepoStep({
   onValidate: () => void;
   inputClass: string;
 }) {
+  const activePlatform =
+    platformHint ||
+    (repoUrl.includes("github.com") ? "github" : repoUrl.includes("gitlab.com") ? "gitlab" : "");
+
   return (
     <section className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-4">
       <div>
         <h2 className="text-sm font-medium mb-1">Repository URL</h2>
-        <p className="text-xs text-text-muted">
-          Paste a GitHub repository URL. Optio will fetch the repo metadata automatically.
+        <p className="text-xs text-text-muted mb-3">
+          Paste a repository URL. Optio will fetch the repo metadata automatically.
         </p>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => setPlatformHint(platformHint === "github" ? "" : "github")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
+            activePlatform === "github"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-text-muted hover:bg-bg-hover",
+          )}
+        >
+          <Github className="w-4 h-4" />
+          GitHub
+        </button>
+        <button
+          onClick={() => setPlatformHint(platformHint === "gitlab" ? "" : "gitlab")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
+            activePlatform === "gitlab"
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-text-muted hover:bg-bg-hover",
+          )}
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z" />
+          </svg>
+          GitLab
+        </button>
       </div>
 
       <div className="flex gap-2">
@@ -366,7 +413,7 @@ function RepoStep({
             }
           }}
           onKeyDown={(e) => e.key === "Enter" && onValidate()}
-          placeholder="https://github.com/owner/repo"
+          placeholder="https://example.com/path/to/repo.git"
           className={cn(inputClass, "flex-1")}
           autoFocus
         />

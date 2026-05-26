@@ -21,8 +21,7 @@ export class GitLabPlatform implements GitPlatform {
 
   private headers(json = false): Record<string, string> {
     const h: Record<string, string> = {
-      "PRIVATE-TOKEN": this.token,
-      "User-Agent": "Optio",
+      Authorization: `Bearer ${this.token}`,
     };
     if (json) h["Content-Type"] = "application/json";
     return h;
