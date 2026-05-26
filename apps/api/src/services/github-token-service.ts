@@ -51,8 +51,16 @@ async function getTokenForTask(taskId: string): Promise<string> {
 
 async function getTokenForUser(userId: string, workspaceId?: string | null): Promise<string> {
   try {
-    const accessToken = await retrieveSecret("GITHUB_USER_ACCESS_TOKEN", `user:${userId}`);
-    const expiresAt = await retrieveSecret("GITHUB_USER_TOKEN_EXPIRES_AT", `user:${userId}`);
+    let accessToken: string;
+    let expiresAt: string;
+    try {
+      accessToken = await retrieveSecret("GITHUB_USER_ACCESS_TOKEN", "user", undefined, userId);
+      expiresAt = await retrieveSecret("GITHUB_USER_TOKEN_EXPIRES_AT", "user", undefined, userId);
+    } catch {
+      // Fallback to legacy scope format
+      accessToken = await retrieveSecret("GITHUB_USER_ACCESS_TOKEN", `user:${userId}`);
+      expiresAt = await retrieveSecret("GITHUB_USER_TOKEN_EXPIRES_AT", `user:${userId}`);
+    }
 
     const expiryTime = new Date(expiresAt).getTime();
     if (Date.now() < expiryTime - TOKEN_REFRESH_BUFFER_MS) {
@@ -88,7 +96,12 @@ async function doRefreshUserToken(userId: string, workspaceId?: string | null): 
   }
 
   try {
-    const refreshToken = await retrieveSecret("GITHUB_USER_REFRESH_TOKEN", `user:${userId}`);
+    let refreshToken: string;
+    try {
+      refreshToken = await retrieveSecret("GITHUB_USER_REFRESH_TOKEN", "user", undefined, userId);
+    } catch {
+      refreshToken = await retrieveSecret("GITHUB_USER_REFRESH_TOKEN", `user:${userId}`);
+    }
 
     const res = await fetch("https://github.com/login/oauth/access_token", {
       method: "POST",
@@ -151,20 +164,22 @@ export async function storeUserGitHubTokens(
   userId: string,
   tokens: { accessToken: string; refreshToken: string; expiresIn: number },
 ): Promise<void> {
-  const scope = `user:${userId}`;
   const expiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
   await Promise.all([
-    storeSecret("GITHUB_USER_ACCESS_TOKEN", tokens.accessToken, scope),
-    storeSecret("GITHUB_USER_REFRESH_TOKEN", tokens.refreshToken, scope),
-    storeSecret("GITHUB_USER_TOKEN_EXPIRES_AT", expiresAt, scope),
+    storeSecret("GITHUB_USER_ACCESS_TOKEN", tokens.accessToken, "user", undefined, userId),
+    storeSecret("GITHUB_USER_REFRESH_TOKEN", tokens.refreshToken, "user", undefined, userId),
+    storeSecret("GITHUB_USER_TOKEN_EXPIRES_AT", expiresAt, "user", undefined, userId),
   ]);
 }
 
 export async function deleteUserGitHubTokens(userId: string): Promise<void> {
-  const scope = `user:${userId}`;
+  const legacyScope = `user:${userId}`;
   await Promise.all([
-    deleteSecret("GITHUB_USER_ACCESS_TOKEN", scope),
-    deleteSecret("GITHUB_USER_REFRESH_TOKEN", scope),
-    deleteSecret("GITHUB_USER_TOKEN_EXPIRES_AT", scope),
+    deleteSecret("GITHUB_USER_ACCESS_TOKEN", "user", undefined, userId).catch(() => {}),
+    deleteSecret("GITHUB_USER_REFRESH_TOKEN", "user", undefined, userId).catch(() => {}),
+    deleteSecret("GITHUB_USER_TOKEN_EXPIRES_AT", "user", undefined, userId).catch(() => {}),
+    deleteSecret("GITHUB_USER_ACCESS_TOKEN", legacyScope).catch(() => {}),
+    deleteSecret("GITHUB_USER_REFRESH_TOKEN", legacyScope).catch(() => {}),
+    deleteSecret("GITHUB_USER_TOKEN_EXPIRES_AT", legacyScope).catch(() => {}),
   ]);
 }

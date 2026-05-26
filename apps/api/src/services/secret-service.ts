@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
-import { eq, and, isNotNull, isNull, sql } from "drizzle-orm";
+import { eq, and, or, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { secrets } from "../db/schema.js";
 import { logger } from "../logger.js";
@@ -232,8 +232,26 @@ export async function listSecrets(
 ): Promise<SecretRef[]> {
   const conditions = [];
   if (scope) conditions.push(eq(secrets.scope, scope));
-  if (workspaceId) conditions.push(eq(secrets.workspaceId, workspaceId));
   if (userId) conditions.push(eq(secrets.userId, userId));
+
+  if (workspaceId) {
+    if (scope === "global") {
+      // Global secrets are strictly workspace-agnostic
+      conditions.push(isNull(secrets.workspaceId));
+    } else if (!scope) {
+      // When listing all secrets for a workspace context, include both the
+      // workspace-bound secrets AND the truly global ones
+      conditions.push(
+        or(
+          eq(secrets.workspaceId, workspaceId),
+          and(eq(secrets.scope, "global"), isNull(secrets.workspaceId))
+        )
+      );
+    } else {
+      // For a specific scope (e.g. a repo URL), constrain to this workspace
+      conditions.push(eq(secrets.workspaceId, workspaceId));
+    }
+  }
 
   const query =
     conditions.length > 0
