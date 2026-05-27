@@ -1761,6 +1761,10 @@ export function buildAgentCommand(
       if (env.OPENCODE_API_KEY) {
         commands.push(`export OPENAI_API_KEY="$OPENCODE_API_KEY"`);
       }
+      if (env.OPENAI_BASE_URL) {
+        // Hydrate the placeholder with the real API key dynamically in bash
+        commands.push(`sed -i 's|\\${OPENCODE_API_KEY}|'"$OPENCODE_API_KEY"'|g' /home/agent/.config/opencode/opencode.json`);
+      }
       commands.push(
         `opencode run --format json${modelFlag}${agentFlag}${resumeFlag} "$OPTIO_PROMPT"`,
       );
