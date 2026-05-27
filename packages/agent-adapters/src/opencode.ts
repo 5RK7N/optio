@@ -81,10 +81,29 @@ export class OpenCodeAdapter implements AgentAdapter {
       env.OPENAI_API_KEY = "sk-no-key-required";
     }
 
+    // Configure custom provider if base URL is provided
+    let configContent: any = { $schema: "https://opencode.ai/config.json" };
+    if (input.opencodeBaseUrl) {
+      configContent = {
+        $schema: "https://opencode.ai/config.json",
+        provider: {
+          "custom": {
+            npm: "@ai-sdk/openai-compatible",
+            name: "Custom OpenAI Compatible Provider",
+            options: {
+              baseURL: input.opencodeBaseUrl,
+              // Will be populated dynamically via env var in worker wrapper
+              apiKey: "${OPENCODE_API_KEY}"
+            }
+          }
+        }
+      };
+    }
+
     // Pre-seed a minimal opencode config so the CLI doesn't hit first-run setup
     setupFiles.push({
       path: "/home/agent/.config/opencode/opencode.json",
-      content: JSON.stringify({ $schema: "https://opencode.ai/config.json" }),
+      content: JSON.stringify(configContent),
     });
 
     // Write the task file into the worktree
