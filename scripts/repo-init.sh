@@ -112,8 +112,22 @@ fi
 # Clone repo (--recurse-submodules handles repos with submodules)
 cd /workspace
 echo "[optio] Cloning..."
-git clone --branch "${OPTIO_REPO_BRANCH}" --recurse-submodules "${OPTIO_REPO_URL}" repo 2>&1
-echo "[optio] Repo cloned"
+if git clone --branch "${OPTIO_REPO_BRANCH}" --recurse-submodules "${OPTIO_REPO_URL}" repo 2>&1; then
+  echo "[optio] Repo cloned via HTTPS"
+else
+  echo "[optio] HTTPS clone failed. Falling back to SSH..."
+  # Convert HTTPS URL to SSH URL
+  if [[ "${OPTIO_REPO_URL}" == *git-codecommit* ]]; then
+    OPTIO_REPO_SSH_URL=$(echo "${OPTIO_REPO_URL}" | sed -E 's|^https?://([^/]+)/v1/repos/(.*)|ssh://\1/v1/repos/\2|')
+  else
+    OPTIO_REPO_SSH_URL=$(echo "${OPTIO_REPO_URL}" | sed -E 's|^https?://([^/]+)/(.*)|git@\1:\2.git|')
+  fi
+
+  echo "[optio] Trying SSH URL: ${OPTIO_REPO_SSH_URL}"
+  # Use GIT_SSH_COMMAND to accept new host keys automatically
+  GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new" git clone --branch "${OPTIO_REPO_BRANCH}" --recurse-submodules "${OPTIO_REPO_SSH_URL}" repo 2>&1
+  echo "[optio] Repo cloned via SSH"
+fi
 
 # Create tasks directory for worktrees
 mkdir -p /workspace/tasks
