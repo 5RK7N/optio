@@ -194,6 +194,11 @@ export const api = {
     return request<{ secrets: any[] }>(`/api/secrets${qs}`);
   },
 
+  getSecret: (name: string, scope?: string) => {
+    const qs = scope ? `?scope=${scope}` : "";
+    return request<{ value: string }>(`/api/secrets/${name}${qs}`);
+  },
+
   createSecret: (data: { name: string; value: string; scope?: string }) =>
     request<{ name: string; scope: string; validation?: { valid: boolean; error?: string } }>(
       "/api/secrets",

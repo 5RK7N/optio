@@ -203,6 +203,47 @@ export async function secretRoutes(rawApp: FastifyInstance) {
     },
   );
 
+  app.get(
+    "/api/secrets/:name",
+    {
+      schema: {
+        operationId: "getSecret",
+        summary: "Get a secret value",
+        description:
+          "Retrieve the decrypted value of a secret by name and scope. " +
+          "Requires `admin` role (or any role for user-scoped secrets).",
+        tags: ["Setup & Settings"],
+        params: nameParamsSchema,
+        querystring: scopeQuerySchema,
+        response: { 200: z.object({ value: z.string() }), 404: ErrorResponseSchema, 403: ErrorResponseSchema },
+      },
+    },
+    async (req, reply) => {
+      const { name } = req.params;
+      const workspaceId = req.user?.workspaceId ?? null;
+      const userId = req.user?.id ?? null;
+      const scope = req.query.scope ?? "global";
+
+      // Admin check for non-user scoped secrets
+      if (scope !== "user") {
+        const role = req.user?.workspaceRole;
+        if (!role || role !== "admin") {
+          return reply.status(403).send({ error: "Forbidden: requires admin role" } as any);
+        }
+      }
+
+      // For user-scoped secrets, force userId to the caller's own ID
+      const effectiveUserId = scope === "user" ? userId : null;
+
+      try {
+        const value = await secretService.retrieveSecret(name, scope, workspaceId, effectiveUserId);
+        reply.send({ value });
+      } catch (err) {
+        reply.status(404).send({ error: "Secret not found" } as any);
+      }
+    },
+  );
+
   app.delete(
     "/api/secrets/:name",
     {
