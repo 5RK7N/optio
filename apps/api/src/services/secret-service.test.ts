@@ -895,6 +895,44 @@ describe("secret-service", () => {
     });
   });
 
+  describe("validateEncryptionKey", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("throws if OPTIO_ENCRYPTION_KEY is not set", async () => {
+      vi.stubEnv("OPTIO_ENCRYPTION_KEY", "");
+      // Need to actually delete it because stubEnv("", "") might just set it to empty string
+      delete process.env.OPTIO_ENCRYPTION_KEY;
+      vi.resetModules();
+      const { validateEncryptionKey } = await import("./secret-service.js");
+      expect(() => validateEncryptionKey()).toThrow("OPTIO_ENCRYPTION_KEY is not set");
+    });
+
+    it("throws if OPTIO_ENCRYPTION_KEY is a weak value", async () => {
+      vi.stubEnv("OPTIO_ENCRYPTION_KEY", "changeme");
+      vi.resetModules();
+      const { validateEncryptionKey } = await import("./secret-service.js");
+      expect(() => validateEncryptionKey()).toThrow(
+        /OPTIO_ENCRYPTION_KEY is set to a known-weak value/
+      );
+    });
+
+    it("succeeds with a valid 64-character hex key", async () => {
+      vi.stubEnv("OPTIO_ENCRYPTION_KEY", "a".repeat(64));
+      vi.resetModules();
+      const { validateEncryptionKey } = await import("./secret-service.js");
+      expect(() => validateEncryptionKey()).not.toThrow();
+    });
+
+    it("succeeds with a non-hex or shorter key by hashing it", async () => {
+      vi.stubEnv("OPTIO_ENCRYPTION_KEY", "a-strong-passphrase-that-is-not-64-hex");
+      vi.resetModules();
+      const { validateEncryptionKey } = await import("./secret-service.js");
+      expect(() => validateEncryptionKey()).not.toThrow();
+    });
+  });
+
   describe("healContradictoryGlobalSecrets (issue #509)", () => {
     let healContradictoryGlobalSecrets: typeof import("./secret-service.js").healContradictoryGlobalSecrets;
 
