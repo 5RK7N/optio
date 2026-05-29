@@ -14,6 +14,8 @@ import {
   Filter,
   User,
   Info,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { TokenRefreshBanner } from "@/components/token-refresh-banner";
 
@@ -27,6 +29,8 @@ export default function SecretsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [scopeFilter, setScopeFilter] = useState<string>("all");
   const [claudeExpired, setClaudeExpired] = useState(false);
+  const [visibleSecrets, setVisibleSecrets] = useState<Record<string, string>>({});
+  const [loadingSecrets, setLoadingSecrets] = useState<Record<string, boolean>>({});
 
   const checkClaudeAuth = useCallback(async () => {
     try {
@@ -96,6 +100,32 @@ export default function SecretsPage() {
       loadSecrets();
     } catch (err) {
       toast.error("Failed to delete secret");
+    }
+  };
+
+  const toggleVisibility = async (name: string, scope: string) => {
+    const key = `${scope}:${name}`;
+    if (visibleSecrets[key] !== undefined) {
+      // If already visible, hide it by removing from state
+      setVisibleSecrets((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+
+    // Fetch value
+    setLoadingSecrets((prev) => ({ ...prev, [key]: true }));
+    try {
+      const res = await api.getSecret(name, scope);
+      setVisibleSecrets((prev) => ({ ...prev, [key]: res.value }));
+    } catch (err) {
+      toast.error("Failed to retrieve secret value", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setLoadingSecrets((prev) => ({ ...prev, [key]: false }));
     }
   };
 
@@ -241,26 +271,52 @@ export default function SecretsPage() {
               key={secret.id}
               className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-bg-card"
             >
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium">{secret.name}</span>
-                <span className="inline-flex items-center gap-1 text-xs text-text-muted px-2 py-0.5 rounded-full bg-bg-hover">
-                  {secret.scope === "global" ? (
-                    <Globe className="w-3 h-3" />
-                  ) : secret.scope === "user" ? (
-                    <User className="w-3 h-3" />
+              <div className="flex flex-col gap-1 w-full max-w-[60%]">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium">{secret.name}</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-text-muted px-2 py-0.5 rounded-full bg-bg-hover shrink-0">
+                    {secret.scope === "global" ? (
+                      <Globe className="w-3 h-3" />
+                    ) : secret.scope === "user" ? (
+                      <User className="w-3 h-3" />
+                    ) : (
+                      <FolderGit2 className="w-3 h-3" />
+                    )}
+                    {scopeLabel(secret.scope)}
+                  </span>
+                </div>
+                <div className="text-sm font-mono text-text-muted truncate">
+                  {visibleSecrets[`${secret.scope}:${secret.name}`] !== undefined ? (
+                    visibleSecrets[`${secret.scope}:${secret.name}`]
                   ) : (
-                    <FolderGit2 className="w-3 h-3" />
+                    "••••••••••••••••"
                   )}
-                  {scopeLabel(secret.scope)}
-                </span>
+                </div>
               </div>
-              <button
-                onClick={() => handleDelete(secret.name, secret.scope)}
-                className="p-1.5 rounded-md hover:bg-error/10 text-text-muted hover:text-error transition-colors"
-                title="Delete secret"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleVisibility(secret.name, secret.scope)}
+                  disabled={loadingSecrets[`${secret.scope}:${secret.name}`]}
+                  className="p-1.5 rounded-md hover:bg-bg-hover text-text-muted transition-colors disabled:opacity-50"
+                  title={visibleSecrets[`${secret.scope}:${secret.name}`] !== undefined ? "Hide value" : "Show value"}
+                >
+                  {loadingSecrets[`${secret.scope}:${secret.name}`] ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : visibleSecrets[`${secret.scope}:${secret.name}`] !== undefined ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleDelete(secret.name, secret.scope)}
+                  className="p-1.5 rounded-md hover:bg-error/10 text-text-muted hover:text-error transition-colors"
+                  title="Delete secret"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
