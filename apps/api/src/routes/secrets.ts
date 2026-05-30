@@ -280,8 +280,10 @@ export async function secretRoutes(rawApp: FastifyInstance) {
 
       // For user-scoped secrets, force userId to the caller's own ID
       const effectiveUserId = scope === "user" ? userId : null;
+      // "global" scope must not carry a workspaceId
+      const effectiveWorkspaceId = scope === "global" ? null : workspaceId;
 
-      await secretService.deleteSecret(name, scope, workspaceId, effectiveUserId);
+      await secretService.deleteSecret(name, scope, effectiveWorkspaceId, effectiveUserId);
       logAction({
         userId: req.user?.id,
         action: "secret.delete",
