@@ -244,8 +244,8 @@ export async function listSecrets(
       conditions.push(
         or(
           eq(secrets.workspaceId, workspaceId),
-          and(eq(secrets.scope, "global"), isNull(secrets.workspaceId))
-        )
+          and(eq(secrets.scope, "global"), isNull(secrets.workspaceId)),
+        ),
       );
     } else {
       // For a specific scope (e.g. a repo URL), constrain to this workspace

@@ -27,7 +27,12 @@ export class OpenCodeAdapter implements AgentAdapter {
     // OpenCode is provider-agnostic — it needs at least one provider API key.
     // Note: when opencodeBaseUrl is set, buildContainerConfig() skips requiredSecrets
     // and injects a placeholder key, so missing provider keys won't block execution.
-    const acceptedKeys = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "OPENCODE_API_KEY"];
+    const acceptedKeys = [
+      "ANTHROPIC_API_KEY",
+      "OPENAI_API_KEY",
+      "GROQ_API_KEY",
+      "OPENCODE_API_KEY",
+    ];
     const hasAny = acceptedKeys.some((k) => availableSecrets.includes(k));
     return {
       valid: hasAny,
@@ -87,16 +92,16 @@ export class OpenCodeAdapter implements AgentAdapter {
       configContent = {
         $schema: "https://opencode.ai/config.json",
         provider: {
-          "custom": {
+          custom: {
             npm: "@ai-sdk/openai-compatible",
             name: "Custom OpenAI Compatible Provider",
             options: {
               baseURL: input.opencodeBaseUrl,
               // Will be populated dynamically via env var in worker wrapper
-              apiKey: "${OPENCODE_API_KEY}"
-            }
-          }
-        }
+              apiKey: "${OPENCODE_API_KEY}",
+            },
+          },
+        },
       };
     }
 

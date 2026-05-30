@@ -286,11 +286,9 @@ export default function SecretsPage() {
                   </span>
                 </div>
                 <div className="text-sm font-mono text-text-muted truncate">
-                  {visibleSecrets[`${secret.scope}:${secret.name}`] !== undefined ? (
-                    visibleSecrets[`${secret.scope}:${secret.name}`]
-                  ) : (
-                    "••••••••••••••••"
-                  )}
+                  {visibleSecrets[`${secret.scope}:${secret.name}`] !== undefined
+                    ? visibleSecrets[`${secret.scope}:${secret.name}`]
+                    : "••••••••••••••••"}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -299,7 +297,11 @@ export default function SecretsPage() {
                   onClick={() => toggleVisibility(secret.name, secret.scope)}
                   disabled={loadingSecrets[`${secret.scope}:${secret.name}`]}
                   className="p-1.5 rounded-md hover:bg-bg-hover text-text-muted transition-colors disabled:opacity-50"
-                  title={visibleSecrets[`${secret.scope}:${secret.name}`] !== undefined ? "Hide value" : "Show value"}
+                  title={
+                    visibleSecrets[`${secret.scope}:${secret.name}`] !== undefined
+                      ? "Hide value"
+                      : "Show value"
+                  }
                 >
                   {loadingSecrets[`${secret.scope}:${secret.name}`] ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

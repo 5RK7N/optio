@@ -136,7 +136,8 @@ export async function setupRoutes(rawApp: FastifyInstance) {
 
       const hasOpencodeBaseUrl = secretNames.includes("OPENCODE_DEFAULT_BASE_URL");
       const hasOpencodeApiKey = secretNames.includes("OPENCODE_API_KEY");
-      const opencodeConfigured = hasAnthropicKey || hasOpenAIKey || hasOpencodeBaseUrl || hasOpencodeApiKey;
+      const opencodeConfigured =
+        hasAnthropicKey || hasOpenAIKey || hasOpencodeBaseUrl || hasOpencodeApiKey;
 
       const hasGeminiKey = secretNames.includes("GEMINI_API_KEY");
       // Vertex AI mode is signaled by GOOGLE_CLOUD_PROJECT (written by the

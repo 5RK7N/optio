@@ -215,7 +215,11 @@ export async function secretRoutes(rawApp: FastifyInstance) {
         tags: ["Setup & Settings"],
         params: nameParamsSchema,
         querystring: scopeQuerySchema,
-        response: { 200: z.object({ value: z.string() }), 404: ErrorResponseSchema, 403: ErrorResponseSchema },
+        response: {
+          200: z.object({ value: z.string() }),
+          404: ErrorResponseSchema,
+          403: ErrorResponseSchema,
+        },
       },
     },
     async (req, reply) => {
@@ -238,7 +242,12 @@ export async function secretRoutes(rawApp: FastifyInstance) {
       const effectiveWorkspaceId = scope === "global" ? null : workspaceId;
 
       try {
-        const value = await secretService.retrieveSecret(name, scope, effectiveWorkspaceId, effectiveUserId);
+        const value = await secretService.retrieveSecret(
+          name,
+          scope,
+          effectiveWorkspaceId,
+          effectiveUserId,
+        );
         reply.send({ value });
       } catch (err) {
         req.log.error({ err, name, scope }, "Failed to retrieve secret");

@@ -51,7 +51,11 @@ export default function ConfigurationPage() {
                 "Public URL of the API server (used for OAuth callbacks)",
               ],
               ["PORT", "4000", "API server port"],
-              ["OPTIO_SKIP_SETUP", "false", "Skip the initial setup wizard (useful for AI automation or local dev)"],
+              [
+                "OPTIO_SKIP_SETUP",
+                "false",
+                "Skip the initial setup wizard (useful for AI automation or local dev)",
+              ],
             ].map(([name, def, desc]) => (
               <tr key={name}>
                 <td className="px-4 py-3 font-mono text-text-heading">{name}</td>
