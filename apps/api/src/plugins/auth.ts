@@ -106,6 +106,8 @@ const SETUP_CACHE_TTL_MS = 60_000; // 60 seconds
  * initial setup is complete. Result is cached for 60 seconds.
  */
 export async function isSetupComplete(): Promise<boolean> {
+  if (process.env.OPTIO_SKIP_SETUP === "true") return true;
+
   const now = Date.now();
   if (_setupCompleteCache && now < _setupCompleteCache.expires) {
     return _setupCompleteCache.value;

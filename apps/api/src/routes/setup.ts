@@ -166,7 +166,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
 
       // Runtime health is a separate step for the wizard; it must not gate
       // isSetUp, or a container-runtime blip traps users in the wizard.
-      const isSetUp = hasAnyAgentKey && hasGitToken;
+      const isSetUp = process.env.OPTIO_SKIP_SETUP === "true" || (hasAnyAgentKey && hasGitToken);
 
       reply.send({
         isSetUp,

@@ -53,6 +53,19 @@ describe("GET /api/setup/status", () => {
     app = await buildTestApp();
   });
 
+  it("returns isSetUp: true when OPTIO_SKIP_SETUP is true", async () => {
+    mockListSecrets.mockResolvedValue([]);
+    mockCheckRuntimeHealth.mockResolvedValue(false);
+    vi.stubEnv("OPTIO_SKIP_SETUP", "true");
+
+    const res = await app.inject({ method: "GET", url: "/api/setup/status" });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.isSetUp).toBe(true);
+
+    vi.unstubAllEnvs();
+  });
+
   it("returns fully set up when all keys exist and runtime is healthy", async () => {
     mockListSecrets.mockResolvedValue([{ name: "ANTHROPIC_API_KEY" }, { name: "GITHUB_TOKEN" }]);
     mockRetrieveSecret.mockRejectedValue(new Error("not found"));
