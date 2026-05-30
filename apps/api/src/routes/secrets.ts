@@ -234,11 +234,14 @@ export async function secretRoutes(rawApp: FastifyInstance) {
 
       // For user-scoped secrets, force userId to the caller's own ID
       const effectiveUserId = scope === "user" ? userId : null;
+      // "global" scope must not carry a workspaceId
+      const effectiveWorkspaceId = scope === "global" ? null : workspaceId;
 
       try {
-        const value = await secretService.retrieveSecret(name, scope, workspaceId, effectiveUserId);
+        const value = await secretService.retrieveSecret(name, scope, effectiveWorkspaceId, effectiveUserId);
         reply.send({ value });
       } catch (err) {
+        req.log.error({ err, name, scope }, "Failed to retrieve secret");
         reply.status(404).send({ error: "Secret not found" } as any);
       }
     },
