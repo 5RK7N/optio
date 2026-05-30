@@ -232,6 +232,8 @@ API ......... http://localhost:30400
 
 Open the web UI and the setup wizard will walk you through configuring GitHub access, agent credentials (API key or Max/Pro subscription), and adding your first repository.
 
+> **Note for CI / Automation:** If you are running Optio in an automated testing environment (e.g., using an AI test agent) and want to bypass the web-based setup wizard, you can set the `OPTIO_SKIP_SETUP=true` environment variable. This allows tasks to be automated immediately without requiring manual UI configuration, provided that the necessary credentials and configuration are already injected via environment variables or Kubernetes secrets.
+
 ### Updating
 
 ```bash
