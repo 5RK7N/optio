@@ -94,6 +94,7 @@ export default function SecretsPage() {
   };
 
   const handleDelete = async (name: string, scope: string) => {
+    if (!window.confirm(`Are you sure you want to delete the secret "${name}"?`)) return;
     try {
       await api.deleteSecret(name, scope);
       toast.success("Secret deleted");

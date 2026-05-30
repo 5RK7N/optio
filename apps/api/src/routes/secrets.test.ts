@@ -189,6 +189,18 @@ describe("DELETE /api/secrets/:name", () => {
     expect(mockDeleteSecret).toHaveBeenCalledWith("MY_SECRET", undefined, "ws-1", null);
   });
 
+  it("deletes a global secret with workspaceId stripped", async () => {
+    mockDeleteSecret.mockResolvedValue(undefined);
+
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/api/secrets/MY_SECRET?scope=global",
+    });
+
+    expect(res.statusCode).toBe(204);
+    expect(mockDeleteSecret).toHaveBeenCalledWith("MY_SECRET", "global", null, null);
+  });
+
   it("passes scope query parameter when deleting", async () => {
     mockDeleteSecret.mockResolvedValue(undefined);
 
