@@ -41,6 +41,31 @@ interface RepoEntry {
   validated: boolean;
 }
 
+function normalizeRepoUrl(url: string): string {
+  let normalized = url.trim();
+
+  // Handle git@host:owner/repo
+  const gitAtRegex = /^git@([^:]+):(.+)$/;
+  const match1 = normalized.match(gitAtRegex);
+  if (match1) {
+    normalized = `https://${match1[1]}/${match1[2]}`;
+  } else {
+    // Handle ssh://git@host/owner/repo
+    const sshRegex = /^ssh:\/\/(?:git@)?([^/]+)\/(.+)$/;
+    const match2 = normalized.match(sshRegex);
+    if (match2) {
+      normalized = `https://${match2[1]}/${match2[2]}`;
+    }
+  }
+
+  // Handle case where .git is at the end
+  if (normalized.endsWith(".git")) {
+    normalized = normalized.slice(0, -4);
+  }
+
+  return normalized;
+}
+
 function isGitHubUrl(url: string): boolean {
   return /(^|[./:@])github\.com([/:]|$)/i.test(url);
 }
@@ -2126,18 +2151,18 @@ export default function SetupPage() {
                     onChange={(e) => setManualRepoUrl(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && manualRepoUrl.trim()) {
-                        const url = manualRepoUrl.trim();
+                        const url = normalizeRepoUrl(manualRepoUrl);
                         setRepos([...repos, { url, validated: false }]);
                         setManualRepoUrl("");
                       }
                     }}
-                    placeholder="https://github.com/owner/repo"
+                    placeholder="https://github.com/owner/repo or git@github.com:owner/repo.git"
                     className="flex-1 px-3 py-2 rounded-md bg-bg border border-border text-sm focus:outline-none focus:border-primary"
                   />
                   <button
                     onClick={() => {
                       if (!manualRepoUrl.trim()) return;
-                      const url = manualRepoUrl.trim();
+                      const url = normalizeRepoUrl(manualRepoUrl);
                       setRepos([...repos, { url, validated: false }]);
                       setManualRepoUrl("");
                     }}

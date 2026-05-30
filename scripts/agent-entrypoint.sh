@@ -39,7 +39,19 @@ esac
 
 # Clone repo
 cd /workspace
-git clone --branch "${OPTIO_REPO_BRANCH}" "${OPTIO_REPO_URL}" repo
+if git clone --branch "${OPTIO_REPO_BRANCH}" "${OPTIO_REPO_URL}" repo; then
+  echo "[optio] Repo cloned via HTTPS"
+else
+  echo "[optio] HTTPS clone failed. Falling back to SSH..."
+  if [[ "${OPTIO_REPO_URL}" == *git-codecommit* ]]; then
+    OPTIO_REPO_SSH_URL=$(echo "${OPTIO_REPO_URL}" | sed -E 's|^https?://([^/]+)/v1/repos/(.*)|ssh://\1/v1/repos/\2|')
+  else
+    OPTIO_REPO_SSH_URL=$(echo "${OPTIO_REPO_URL}" | sed -E 's|^https?://([^/]+)/(.*)|git@\1:\2.git|')
+  fi
+  echo "[optio] Trying SSH URL: ${OPTIO_REPO_SSH_URL}"
+  GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new" git clone --branch "${OPTIO_REPO_BRANCH}" "${OPTIO_REPO_SSH_URL}" repo
+  echo "[optio] Repo cloned via SSH"
+fi
 cd repo
 
 # Create working branch
