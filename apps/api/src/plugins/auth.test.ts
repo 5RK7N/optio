@@ -285,21 +285,25 @@ describe("isSetupComplete", () => {
   });
 
   it("returns false when no agent key secrets exist", async () => {
+    delete process.env.OPTIO_SKIP_SETUP;
     mockListSecrets.mockResolvedValue([{ name: "GITHUB_TOKEN" }]);
     expect(await isSetupComplete()).toBe(false);
   });
 
   it("returns false when secrets list is empty", async () => {
+    delete process.env.OPTIO_SKIP_SETUP;
     mockListSecrets.mockResolvedValue([]);
     expect(await isSetupComplete()).toBe(false);
   });
 
   it("returns false when listSecrets throws", async () => {
+    delete process.env.OPTIO_SKIP_SETUP;
     mockListSecrets.mockRejectedValue(new Error("db error"));
     expect(await isSetupComplete()).toBe(false);
   });
 
   it("caches the result across calls", async () => {
+    delete process.env.OPTIO_SKIP_SETUP;
     mockListSecrets.mockResolvedValue([{ name: "ANTHROPIC_API_KEY" }]);
     await isSetupComplete();
     await isSetupComplete();
@@ -307,6 +311,7 @@ describe("isSetupComplete", () => {
   });
 
   it("refreshes after cache reset", async () => {
+    delete process.env.OPTIO_SKIP_SETUP;
     mockListSecrets.mockResolvedValue([{ name: "ANTHROPIC_API_KEY" }]);
     await isSetupComplete();
     resetSetupCompleteCache();

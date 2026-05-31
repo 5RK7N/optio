@@ -82,6 +82,7 @@ export class GenericOIDCProvider implements OAuthProvider {
       response_type: "code",
       scope: this.scopes,
       state,
+      prompt: "login",
     });
     return `${this.discoveryCache.doc.authorization_endpoint}?${params}`;
   }

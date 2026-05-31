@@ -97,6 +97,7 @@ describe("GET /api/setup/status", () => {
   });
 
   it("returns not set up when no agent key exists", async () => {
+    delete process.env.OPTIO_SKIP_SETUP;
     mockListSecrets.mockResolvedValue([{ name: "GITHUB_TOKEN" }]);
     mockRetrieveSecret.mockRejectedValue(new Error("not found"));
     mockCheckRuntimeHealth.mockResolvedValue(true);

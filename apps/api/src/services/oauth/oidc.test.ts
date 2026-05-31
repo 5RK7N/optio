@@ -154,6 +154,7 @@ describe("GenericOIDCProvider", () => {
       expect(parsed.searchParams.get("scope")).toBe("openid email profile");
       expect(parsed.searchParams.get("state")).toBe("test-state-123");
       expect(parsed.searchParams.get("redirect_uri")).toContain("/api/auth/oidc/callback");
+      expect(parsed.searchParams.get("prompt")).toBe("login");
     });
 
     it("throws if prepare() was not called", async () => {
