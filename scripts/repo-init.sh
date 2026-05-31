@@ -122,7 +122,8 @@ else
     echo "[optio] Setting up SSH_KEY from environment"
     mkdir -p ~/.ssh
     chmod 700 ~/.ssh
-    echo "${SSH_KEY}" > ~/.ssh/id_rsa
+    # Use printf %b to handle escaped newlines, remove carriage returns, and ensure trailing newline
+    printf "%b\n" "${SSH_KEY}" | tr -d '\r' > ~/.ssh/id_rsa
     chmod 600 ~/.ssh/id_rsa
   fi
 

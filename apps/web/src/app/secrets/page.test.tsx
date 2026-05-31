@@ -35,9 +35,7 @@ describe("SecretsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockListSecrets.mockResolvedValue({
-      secrets: [
-        { id: "1", name: "MY_TEST_SECRET", scope: "global" },
-      ],
+      secrets: [{ id: "1", name: "MY_TEST_SECRET", scope: "global" }],
     });
     mockListRepos.mockResolvedValue({ repos: [] });
     // Stub window.confirm
@@ -63,7 +61,9 @@ describe("SecretsPage", () => {
 
     // 2. Click delete and verify api is NOT called
     fireEvent.click(deleteButton);
-    expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to delete the secret "MY_TEST_SECRET"?');
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Are you sure you want to delete the secret "MY_TEST_SECRET"?',
+    );
     expect(mockDeleteSecret).not.toHaveBeenCalled();
 
     // 3. Setup mock confirm to return true
@@ -72,10 +72,12 @@ describe("SecretsPage", () => {
 
     // 4. Click delete and verify api IS called
     fireEvent.click(deleteButton);
-    expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to delete the secret "MY_TEST_SECRET"?');
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Are you sure you want to delete the secret "MY_TEST_SECRET"?',
+    );
 
     await waitFor(() => {
-        expect(mockDeleteSecret).toHaveBeenCalledWith("MY_TEST_SECRET", "global");
+      expect(mockDeleteSecret).toHaveBeenCalledWith("MY_TEST_SECRET", "global");
     });
   });
 });
