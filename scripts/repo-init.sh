@@ -122,8 +122,33 @@ else
     echo "[optio] Setting up SSH_KEY from environment"
     mkdir -p ~/.ssh
     chmod 700 ~/.ssh
-    # Use printf %b to handle escaped newlines, remove carriage returns, and ensure trailing newline
-    printf "%b\n" "${SSH_KEY}" | tr -d '\r' > ~/.ssh/id_rsa
+    # Use printf %b to handle escaped newlines, remove carriage returns
+    # Process through awk to restore 70-character wrapping if newlines were lost during copy/paste
+    printf "%b\n" "${SSH_KEY}" | tr -d '\r' | awk '
+    {
+        if (match($0, /-----BEGIN [A-Z0-9 ]+-----/) && match($0, /-----END [A-Z0-9 ]+-----/)) {
+            h_start = match($0, /-----BEGIN [A-Z0-9 ]+-----/)
+            h_len = RLENGTH
+            header = substr($0, h_start, h_len)
+
+            f_start = match($0, /-----END [A-Z0-9 ]+-----/)
+            f_len = RLENGTH
+            footer = substr($0, f_start, f_len)
+
+            body = substr($0, h_start + h_len, f_start - (h_start + h_len))
+            gsub(/[[:space:]]/, "", body)
+
+            print header
+            len = length(body)
+            for (i=1; i<=len; i+=70) {
+                print substr(body, i, 70)
+            }
+            print footer
+            next
+        }
+        print $0
+    }
+    ' > ~/.ssh/id_rsa
     chmod 600 ~/.ssh/id_rsa
   fi
 
