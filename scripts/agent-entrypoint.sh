@@ -43,6 +43,25 @@ if git clone --branch "${OPTIO_REPO_BRANCH}" "${OPTIO_REPO_URL}" repo; then
   echo "[optio] Repo cloned via HTTPS"
 else
   echo "[optio] HTTPS clone failed. Falling back to SSH..."
+
+  # Setup SSH key if provided
+  if [ -n "${SSH_KEY:-}" ]; then
+    echo "[optio] Setting up SSH_KEY from environment"
+    mkdir -p ~/.ssh
+    chmod 700 ~/.ssh
+    echo "${SSH_KEY}" > ~/.ssh/id_rsa
+    chmod 600 ~/.ssh/id_rsa
+  fi
+
+  # Extract host for known_hosts
+  SSH_HOST=$(echo "${OPTIO_REPO_URL}" | sed -E 's|^https?://([^/]+).*|\1|')
+  if [ -n "${SSH_HOST}" ]; then
+    echo "[optio] Adding ${SSH_HOST} to known_hosts"
+    mkdir -p ~/.ssh
+    chmod 700 ~/.ssh
+    ssh-keyscan -H "${SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
+  fi
+
   if [[ "${OPTIO_REPO_URL}" == *git-codecommit* ]]; then
     OPTIO_REPO_SSH_URL=$(echo "${OPTIO_REPO_URL}" | sed -E 's|^https?://([^/]+)/v1/repos/(.*)|ssh://\1/v1/repos/\2|')
   else
