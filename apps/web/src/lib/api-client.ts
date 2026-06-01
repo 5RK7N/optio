@@ -449,7 +449,11 @@ export const api = {
       body: JSON.stringify({ key }),
     }),
 
-  validateRepo: (repoUrl: string, token?: string, platform?: "github" | "gitlab" | "codecommit") => {
+  validateRepo: (
+    repoUrl: string,
+    token?: string,
+    platform?: "github" | "gitlab" | "codecommit",
+  ) => {
     let endpoint = "/api/setup/validate/repo";
     if (platform === "github") endpoint = "/api/setup/validate/repo/github";
     if (platform === "gitlab") endpoint = "/api/setup/validate/repo/gitlab";

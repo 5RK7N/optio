@@ -42,7 +42,9 @@ export default function NewRepoPage() {
 
   // Step 1: Repo
   const [repoUrl, setRepoUrl] = useState("");
-  const [repoPlatformHint, setRepoPlatformHint] = useState<"github" | "gitlab" | "codecommit" | undefined>(undefined);
+  const [repoPlatformHint, setRepoPlatformHint] = useState<
+    "github" | "gitlab" | "codecommit" | undefined
+  >(undefined);
   const [fullName, setFullName] = useState("");
   const [defaultBranch, setDefaultBranch] = useState("main");
   const [isPrivate, setIsPrivate] = useState(false);
@@ -84,9 +86,17 @@ export default function NewRepoPage() {
     setValidationError("");
     setValidated(false);
 
-    const repoPlatform = repoPlatformHint || (repoUrl.includes("github.com") ? "github" : repoUrl.includes("gitlab.com") ? "gitlab" : undefined);
+    const repoPlatform =
+      repoPlatformHint ||
+      (repoUrl.includes("github.com")
+        ? "github"
+        : repoUrl.includes("gitlab.com")
+          ? "gitlab"
+          : undefined);
     if (!repoPlatform) {
-      setValidationError("Could not auto-detect repository provider. Please select GitHub, GitLab, or CodeCommit.");
+      setValidationError(
+        "Could not auto-detect repository provider. Please select GitHub, GitLab, or CodeCommit.",
+      );
       setValidating(false);
       return;
     }
@@ -96,7 +106,12 @@ export default function NewRepoPage() {
       let token: string | undefined;
       try {
         const secrets = await api.listSecrets("global");
-        const tokenName = repoPlatform === "github" ? "GITHUB_TOKEN" : repoPlatform === "gitlab" ? "GITLAB_TOKEN" : "AWS_ACCESS_KEY_ID";
+        const tokenName =
+          repoPlatform === "github"
+            ? "GITHUB_TOKEN"
+            : repoPlatform === "gitlab"
+              ? "GITLAB_TOKEN"
+              : "AWS_ACCESS_KEY_ID";
         const secret = secrets.secrets.find((s: any) => s.name === tokenName);
         if (secret) {
           // Token exists but we can't read the value — the validate endpoint will use it server-side
@@ -238,6 +253,7 @@ export default function NewRepoPage() {
             defaultBranch={defaultBranch}
             isPrivate={isPrivate}
             validated={validated}
+            setValidated={setValidated}
             validating={validating}
             validationError={validationError}
             onValidate={validateRepo}
@@ -346,6 +362,7 @@ function RepoStep({
   defaultBranch,
   isPrivate,
   validated,
+  setValidated,
   validating,
   validationError,
   onValidate,
@@ -359,6 +376,7 @@ function RepoStep({
   defaultBranch: string;
   isPrivate: boolean;
   validated: boolean;
+  setValidated: (v: boolean) => void;
   validating: boolean;
   validationError: string;
   onValidate: () => void;
@@ -378,7 +396,7 @@ function RepoStep({
               "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
               repoPlatformHint === "github"
                 ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-text-muted hover:bg-bg-hover"
+                : "border-border text-text-muted hover:bg-bg-hover",
             )}
           >
             <Github className="w-4 h-4" />
@@ -390,7 +408,7 @@ function RepoStep({
               "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
               repoPlatformHint === "gitlab"
                 ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-text-muted hover:bg-bg-hover"
+                : "border-border text-text-muted hover:bg-bg-hover",
             )}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -404,7 +422,7 @@ function RepoStep({
               "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
               repoPlatformHint === "codecommit"
                 ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-text-muted hover:bg-bg-hover"
+                : "border-border text-text-muted hover:bg-bg-hover",
             )}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">

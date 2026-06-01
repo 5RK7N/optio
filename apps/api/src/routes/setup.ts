@@ -647,7 +647,6 @@ export async function setupRoutes(rawApp: FastifyInstance) {
     },
   );
 
-
   app.post(
     "/api/setup/validate/repo/github",
     {
@@ -679,7 +678,11 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         }
 
         if (!repoToken) {
-          return reply.send({ valid: false, error: "GitHub secrets are missing. Please add GITHUB_TOKEN in the /secrets page first." });
+          return reply.send({
+            valid: false,
+            error:
+              "GitHub secrets are missing. Please add GITHUB_TOKEN in the /secrets page first.",
+          });
         }
 
         if (repoToken) headers["Authorization"] = `Bearer ${repoToken}`;
@@ -731,12 +734,16 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         if (!repoToken) repoToken = await retrieveSecret("GITLAB_TOKEN").catch(() => null);
 
         if (!repoToken) {
-           return reply.send({ valid: false, error: "GitLab secrets are missing. Please add GITLAB_TOKEN in the /secrets page first." });
+          return reply.send({
+            valid: false,
+            error:
+              "GitLab secrets are missing. Please add GITLAB_TOKEN in the /secrets page first.",
+          });
         }
 
         const gitlabHost = await retrieveSecret("GITLAB_HOST").catch(() => "gitlab.com");
 
-        const hostPattern = gitlabHost.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const hostPattern = gitlabHost.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const regex = new RegExp(`${hostPattern}[/:](.+?)\\.git$|${hostPattern}[/:](.+?)$`);
         const match = repoUrl.match(regex);
 
@@ -746,9 +753,14 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         const repoPath = match[1] || match[2];
         const encodedPath = encodeURIComponent(repoPath.replace(/\/$/, ""));
 
-        const headers: Record<string, string> = { "User-Agent": "Optio", "PRIVATE-TOKEN": repoToken };
+        const headers: Record<string, string> = {
+          "User-Agent": "Optio",
+          "PRIVATE-TOKEN": repoToken,
+        };
 
-        const res = await fetch(`https://${gitlabHost}/api/v4/projects/${encodedPath}`, { headers });
+        const res = await fetch(`https://${gitlabHost}/api/v4/projects/${encodedPath}`, {
+          headers,
+        });
         if (res.ok) {
           const data = (await res.json()) as {
             path_with_namespace: string;
@@ -796,12 +808,16 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         const awsRegion = await retrieveSecret("AWS_REGION").catch(() => null);
 
         if (!awsAccessKeyId || !awsSecretAccessKey || !awsRegion) {
-           return reply.send({ valid: false, error: "AWS secrets are missing. Please add AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION in the /secrets page first." });
+          return reply.send({
+            valid: false,
+            error:
+              "AWS secrets are missing. Please add AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION in the /secrets page first.",
+          });
         }
 
         const match = repoUrl.match(/git-codecommit\.([^.]+)\.amazonaws\.com\/v1\/repos\/([^/]+)/);
         if (!match) {
-           return reply.send({ valid: false, error: "Could not parse CodeCommit repo from URL" });
+          return reply.send({ valid: false, error: "Could not parse CodeCommit repo from URL" });
         }
 
         const repoName = match[2];
@@ -821,7 +837,6 @@ export async function setupRoutes(rawApp: FastifyInstance) {
             isPrivate: true,
           },
         });
-
       } catch (err) {
         app.log.error(err, "CodeCommit repo validation failed");
         reply.send({ valid: false, error: sanitizeError(err) });
