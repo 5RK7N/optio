@@ -10,12 +10,17 @@ git config --global user.email "${GIT_BOT_EMAIL:-${GITHUB_APP_BOT_EMAIL:-optio-a
 
 # Detect git platform from repo URL
 OPTIO_GIT_HOST=""
-case "${OPTIO_REPO_URL}" in
-  *git-codecommit.*.amazonaws.com*) OPTIO_GIT_HOST="codecommit" ;;
-  *gitlab*) OPTIO_GIT_HOST="gitlab" ;;
-  *github*) OPTIO_GIT_HOST="github" ;;
-  *)        OPTIO_GIT_HOST="github" ;; # default
-esac
+if [[ "${OPTIO_REPO_URL}" == *git-codecommit.*.amazonaws.com* ]]; then
+  OPTIO_GIT_HOST="codecommit"
+elif [ -n "${GITLAB_HOST:-}" ] && [[ "${OPTIO_REPO_URL}" == *"${GITLAB_HOST}"* ]]; then
+  OPTIO_GIT_HOST="gitlab"
+elif [[ "${OPTIO_REPO_URL}" == *gitlab* ]]; then
+  OPTIO_GIT_HOST="gitlab"
+elif [[ "${OPTIO_REPO_URL}" == *github* ]]; then
+  OPTIO_GIT_HOST="github"
+else
+  OPTIO_GIT_HOST="github" # default
+fi
 echo "[optio] Detected git platform: ${OPTIO_GIT_HOST}"
 
 # Set up git credentials for initial clone.
@@ -45,10 +50,12 @@ elif [ -n "${OPTIO_GIT_CREDENTIAL_URL:-}" ] && [ -f /usr/local/bin/optio-git-cre
   echo "[optio] Dynamic git credential helper configured"
   # Authenticate glab CLI if GitLab token is available
   if [ -n "${GITLAB_TOKEN:-}" ] && command -v glab >/dev/null 2>&1; then
-    GITLAB_HOST="gitlab.com"
-    case "${OPTIO_REPO_URL}" in
-      *://*) GITLAB_HOST=$(echo "${OPTIO_REPO_URL}" | sed -E 's|.*://([^/]+).*|\1|') ;;
-    esac
+    if [ -z "${GITLAB_HOST:-}" ]; then
+      export GITLAB_HOST="gitlab.com"
+      case "${OPTIO_REPO_URL}" in
+        *://*) GITLAB_HOST=$(echo "${OPTIO_REPO_URL}" | sed -E 's|.*://([^/]+).*|\1|') ;;
+      esac
+    fi
     glab auth login --hostname "${GITLAB_HOST}" --token "${GITLAB_TOKEN}" 2>/dev/null || true
     echo "[optio] GitLab CLI authenticated (host: ${GITLAB_HOST})"
   fi
@@ -78,12 +85,14 @@ elif [ -n "${GITHUB_TOKEN:-}" ] || [ -n "${GITLAB_TOKEN:-}" ]; then
 
   if [ -n "${GITLAB_TOKEN:-}" ]; then
     # Extract GitLab host from repo URL, default to gitlab.com
-    GITLAB_HOST="gitlab.com"
-    case "${OPTIO_REPO_URL}" in
-      *://*)
-        GITLAB_HOST=$(echo "${OPTIO_REPO_URL}" | sed -E 's|.*://([^/]+).*|\1|')
-        ;;
-    esac
+    if [ -z "${GITLAB_HOST:-}" ]; then
+      export GITLAB_HOST="gitlab.com"
+      case "${OPTIO_REPO_URL}" in
+        *://*)
+          GITLAB_HOST=$(echo "${OPTIO_REPO_URL}" | sed -E 's|.*://([^/]+).*|\1|')
+          ;;
+      esac
+    fi
     echo "https://oauth2:${GITLAB_TOKEN}@${GITLAB_HOST}" >> ~/.git-credentials
     # Authenticate glab CLI if available
     if command -v glab >/dev/null 2>&1; then
