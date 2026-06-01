@@ -64,7 +64,7 @@ export default function OverviewPage() {
 
   const isFirstRun = (taskStats?.total ?? 0) === 0;
   if (isFirstRun) {
-    return <WelcomeHero repoCount={repoCount ?? 0} />;
+    return <WelcomeHero repoCount={repoCount ?? 0} taskCount={taskStats?.total ?? 0} />;
   }
 
   const totalCost = recentTasks.reduce((sum: number, t: any) => {

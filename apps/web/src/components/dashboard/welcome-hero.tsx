@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api-client";
 import {
   CheckCircle,
   Zap,
@@ -36,17 +38,30 @@ function QuickLink({
   );
 }
 
-export function WelcomeHero({ repoCount }: { repoCount: number }) {
+export function WelcomeHero({ repoCount, taskCount }: { repoCount: number; taskCount: number }) {
   const hasRepos = repoCount > 0;
+  const hasTasks = taskCount > 0;
+  const [hasAgentKey, setHasAgentKey] = useState(false);
+
+  useEffect(() => {
+    api
+      .getSetupStatus()
+      .then((res) => {
+        if (res.steps?.anyAgentKey?.done) {
+          setHasAgentKey(true);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const steps = [
     {
       num: 1,
       icon: KeyRound,
       title: "Configure secrets",
-      description: "Add your Anthropic API key or connect Claude Max credentials.",
+      description: "Add at least an AI Model API key or connect with credentials.",
       href: "/secrets",
-      done: false,
+      done: hasAgentKey,
     },
     {
       num: 2,
@@ -62,7 +77,7 @@ export function WelcomeHero({ repoCount }: { repoCount: number }) {
       title: "Create your first task",
       description: "Describe what you want built. Optio spins up an agent and opens a PR.",
       href: "/tasks/new",
-      done: false,
+      done: hasTasks,
     },
   ];
 
