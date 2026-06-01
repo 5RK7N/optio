@@ -626,7 +626,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       const gitlabHost = host ?? "gitlab.com";
       try {
         const res = await fetch(
-          `https://${gitlabHost}/api/v4/projects?membership=true&order_by=last_activity_at&sort=desc&per_page=20`,
+          `https://${gitlabHost}/api/v4/projects?membership=true&min_access_level=30&order_by=last_activity_at&sort=desc&per_page=20`,
           { headers: { "PRIVATE-TOKEN": token, "User-Agent": "Optio" } },
         );
         if (!res.ok) {
