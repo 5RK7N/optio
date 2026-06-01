@@ -449,15 +449,20 @@ export const api = {
       body: JSON.stringify({ key }),
     }),
 
-  validateRepo: (repoUrl: string, token?: string) =>
-    request<{
+  validateRepo: (repoUrl: string, token?: string, platform?: "github" | "gitlab" | "codecommit") => {
+    let endpoint = "/api/setup/validate/repo";
+    if (platform === "github") endpoint = "/api/setup/validate/repo/github";
+    if (platform === "gitlab") endpoint = "/api/setup/validate/repo/gitlab";
+    if (platform === "codecommit") endpoint = "/api/setup/validate/repo/codecommit";
+    return request<{
       valid: boolean;
       error?: string;
       repo?: { fullName: string; defaultBranch: string; isPrivate: boolean };
-    }>("/api/setup/validate/repo", {
+    }>(endpoint, {
       method: "POST",
       body: JSON.stringify({ repoUrl, token }),
-    }),
+    });
+  },
 
   getAuthStatus: () =>
     request<{

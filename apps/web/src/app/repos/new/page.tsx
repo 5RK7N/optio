@@ -17,6 +17,7 @@ import {
   Globe,
   Search,
   AlertCircle,
+  Github,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -41,6 +42,7 @@ export default function NewRepoPage() {
 
   // Step 1: Repo
   const [repoUrl, setRepoUrl] = useState("");
+  const [repoPlatformHint, setRepoPlatformHint] = useState<"github" | "gitlab" | "codecommit" | undefined>(undefined);
   const [fullName, setFullName] = useState("");
   const [defaultBranch, setDefaultBranch] = useState("main");
   const [isPrivate, setIsPrivate] = useState(false);
@@ -81,13 +83,22 @@ export default function NewRepoPage() {
     setValidating(true);
     setValidationError("");
     setValidated(false);
+
+    const repoPlatform = repoPlatformHint || (repoUrl.includes("github.com") ? "github" : repoUrl.includes("gitlab.com") ? "gitlab" : undefined);
+    if (!repoPlatform) {
+      setValidationError("Could not auto-detect repository provider. Please select GitHub, GitLab, or CodeCommit.");
+      setValidating(false);
+      return;
+    }
+
     try {
-      // Try to get GitHub token from secrets for private repos
+      // Try to get token from secrets for private repos
       let token: string | undefined;
       try {
         const secrets = await api.listSecrets("global");
-        const ghSecret = secrets.secrets.find((s: any) => s.name === "GITHUB_TOKEN");
-        if (ghSecret) {
+        const tokenName = repoPlatform === "github" ? "GITHUB_TOKEN" : repoPlatform === "gitlab" ? "GITLAB_TOKEN" : "AWS_ACCESS_KEY_ID";
+        const secret = secrets.secrets.find((s: any) => s.name === tokenName);
+        if (secret) {
           // Token exists but we can't read the value — the validate endpoint will use it server-side
           token = undefined;
         }
@@ -95,7 +106,7 @@ export default function NewRepoPage() {
         // No secrets access, that's fine
       }
 
-      const res = await api.validateRepo(repoUrl, token);
+      const res = await api.validateRepo(repoUrl, token, repoPlatform);
       if (res.valid && res.repo) {
         setFullName(res.repo.fullName);
         setDefaultBranch(res.repo.defaultBranch);
@@ -221,6 +232,8 @@ export default function NewRepoPage() {
           <RepoStep
             repoUrl={repoUrl}
             setRepoUrl={setRepoUrl}
+            repoPlatformHint={repoPlatformHint}
+            setRepoPlatformHint={setRepoPlatformHint}
             fullName={fullName}
             defaultBranch={defaultBranch}
             isPrivate={isPrivate}
@@ -327,6 +340,8 @@ export default function NewRepoPage() {
 function RepoStep({
   repoUrl,
   setRepoUrl,
+  repoPlatformHint,
+  setRepoPlatformHint,
   fullName,
   defaultBranch,
   isPrivate,
@@ -338,6 +353,8 @@ function RepoStep({
 }: {
   repoUrl: string;
   setRepoUrl: (v: string) => void;
+  repoPlatformHint: "github" | "gitlab" | "codecommit" | undefined;
+  setRepoPlatformHint: (v: "github" | "gitlab" | "codecommit" | undefined) => void;
   fullName: string;
   defaultBranch: string;
   isPrivate: boolean;
@@ -350,9 +367,58 @@ function RepoStep({
   return (
     <section className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-4">
       <div>
+        <h2 className="text-sm font-medium mb-1">Provider</h2>
+        <p className="text-xs text-text-muted mb-2">
+          Select the repository provider or let Optio detect it from the URL.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setRepoPlatformHint("github")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
+              repoPlatformHint === "github"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-text-muted hover:bg-bg-hover"
+            )}
+          >
+            <Github className="w-4 h-4" />
+            GitHub
+          </button>
+          <button
+            onClick={() => setRepoPlatformHint("gitlab")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
+              repoPlatformHint === "gitlab"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-text-muted hover:bg-bg-hover"
+            )}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z" />
+            </svg>
+            GitLab
+          </button>
+          <button
+            onClick={() => setRepoPlatformHint("codecommit")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-md text-sm border transition-colors",
+              repoPlatformHint === "codecommit"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-text-muted hover:bg-bg-hover"
+            )}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2 2 7v10l10 5 10-5V7L12 2zm0 2.18L19.82 8 12 11.82 4.18 8 12 4.18zM4 9.74l7 3.5v7.52l-7-3.5V9.74zm9 11.02v-7.52l7-3.5v7.52l-7 3.5z" />
+            </svg>
+            CodeCommit
+          </button>
+        </div>
+      </div>
+
+      <div>
         <h2 className="text-sm font-medium mb-1">Repository URL</h2>
         <p className="text-xs text-text-muted">
-          Paste a GitHub repository URL. Optio will fetch the repo metadata automatically.
+          Paste a repository URL. Optio will fetch the repo metadata automatically.
         </p>
       </div>
 
@@ -363,6 +429,7 @@ function RepoStep({
             setRepoUrl(e.target.value);
             if (validated) {
               // Reset validation when URL changes — but don't clear fields
+              setValidated(false);
             }
           }}
           onKeyDown={(e) => e.key === "Enter" && onValidate()}
