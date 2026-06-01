@@ -37,6 +37,8 @@ export interface ContainerSpec {
   terminationGracePeriodSeconds?: number;
   /** Kubernetes service account name for the pod (for workload identity). */
   serviceAccountName?: string;
+  /** Kubernetes dnsConfig for the pod. */
+  dnsConfig?: unknown;
 }
 
 export interface VolumeMount {

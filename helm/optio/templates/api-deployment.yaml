@@ -18,6 +18,10 @@ spec:
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
       {{- with .Values.imagePullSecrets }}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -108,6 +112,10 @@ spec:
               value: {{ .Values.api.env.LOG_LEVEL | quote }}
             - name: OPTIO_ENVOY_IMAGE
               value: "{{ .Values.agent.envoyProxy.image.repository }}:{{ .Values.agent.envoyProxy.image.tag }}"
+            {{- with .Values.dnsConfig }}
+            - name: OPTIO_POD_DNS_CONFIG
+              value: {{ toJson . | quote }}
+            {{- end }}
             {{- if and .Values.redis.enabled .Values.redis.auth.enabled }}
             - name: REDIS_PASSWORD
               valueFrom:

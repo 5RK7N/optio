@@ -7,6 +7,7 @@ import {
   V1Namespace,
   V1ObjectMeta,
   V1PodSpec,
+  V1PodDNSConfig,
   V1Container,
   V1EnvVar,
   V1ResourceRequirements,
@@ -237,6 +238,16 @@ export class KubernetesContainerRuntime implements ContainerRuntime {
     // User namespace isolation (K8s 1.33+)
     if (spec.hostUsers === false) {
       podSpec.hostUsers = false;
+    }
+
+    if (spec.dnsConfig) {
+      podSpec.dnsConfig = spec.dnsConfig as V1PodDNSConfig;
+    } else if (process.env.OPTIO_POD_DNS_CONFIG) {
+      try {
+        podSpec.dnsConfig = JSON.parse(process.env.OPTIO_POD_DNS_CONFIG) as V1PodDNSConfig;
+      } catch (e) {
+        // ignore JSON parse errors
+      }
     }
 
     // Node scheduling constraints (e.g. pin agent pods to a dedicated node pool)

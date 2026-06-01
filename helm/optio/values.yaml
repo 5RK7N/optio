@@ -520,3 +520,10 @@ serviceAccount:
 # ──────────────────────────────────────────────────────────────────────────────
 imagePullSecrets: []
 #  - name: my-registry-secret
+
+dnsConfig: {}
+  # nameservers:
+  #   - 192.168.0.1
+  # options:
+  #   - name: ndots
+  #     value: "1"
