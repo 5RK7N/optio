@@ -252,7 +252,13 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         if (!res.ok) {
           return reply.send({ valid: false, error: `GitLab returned ${res.status}` });
         }
-        const user = (await res.json()) as { username: string; name: string };
+        const user = (await res.json().catch(() => null)) as {
+          username: string;
+          name: string;
+        } | null;
+        if (!user) {
+          return reply.send({ valid: false, error: "Invalid JSON response from GitLab" });
+        }
         reply.send({ valid: true, user: { login: user.username, name: user.name } });
       } catch (err) {
         app.log.error(err, "GitLab token validation failed");
@@ -439,7 +445,10 @@ export async function setupRoutes(rawApp: FastifyInstance) {
         if (!res.ok) {
           return reply.send({ valid: false, error: `GitHub returned ${res.status}` });
         }
-        const user = (await res.json()) as { login: string; name: string };
+        const user = (await res.json().catch(() => null)) as { login: string; name: string } | null;
+        if (!user) {
+          return reply.send({ valid: false, error: "Invalid JSON response from GitHub" });
+        }
         reply.send({ valid: true, user: { login: user.login, name: user.name } });
       } catch (err) {
         app.log.error(err, "Copilot token validation failed");
@@ -570,7 +579,13 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           pushed_at: string;
         };
 
-        const json = (await res.json()) as RepoItem[] | { repositories: RepoItem[] };
+        const json = (await res.json().catch(() => null)) as
+          | RepoItem[]
+          | { repositories: RepoItem[] }
+          | null;
+        if (!json) {
+          return reply.send({ repos: [], error: "Invalid JSON response from GitHub" });
+        }
         const data: RepoItem[] = Array.isArray(json) ? json : json.repositories;
 
         const repos = data.map((r) => ({
@@ -618,7 +633,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           return reply.send({ repos: [], error: `GitLab returned ${res.status}` });
         }
 
-        const data = (await res.json()) as Array<{
+        const data = (await res.json().catch(() => null)) as Array<{
           path_with_namespace: string;
           web_url: string;
           http_url_to_repo: string;
@@ -626,7 +641,11 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           visibility: string;
           description: string | null;
           last_activity_at: string;
-        }>;
+        }> | null;
+
+        if (!data) {
+          return reply.send({ repos: [], error: "Invalid JSON response from GitLab" });
+        }
 
         const repos = data.map((r) => ({
           fullName: r.path_with_namespace,
@@ -689,11 +708,14 @@ export async function setupRoutes(rawApp: FastifyInstance) {
 
         const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
         if (res.ok) {
-          const data = (await res.json()) as {
+          const data = (await res.json().catch(() => null)) as {
             full_name: string;
             default_branch: string;
             private: boolean;
-          };
+          } | null;
+          if (!data) {
+            return reply.send({ valid: false, error: "Invalid JSON response from GitHub" });
+          }
           reply.send({
             valid: true,
             repo: {
@@ -762,11 +784,14 @@ export async function setupRoutes(rawApp: FastifyInstance) {
           headers,
         });
         if (res.ok) {
-          const data = (await res.json()) as {
+          const data = (await res.json().catch(() => null)) as {
             path_with_namespace: string;
             default_branch: string;
             visibility: string;
-          };
+          } | null;
+          if (!data) {
+            return reply.send({ valid: false, error: "Invalid JSON response from GitLab" });
+          }
           reply.send({
             valid: true,
             repo: {
@@ -879,11 +904,14 @@ export async function setupRoutes(rawApp: FastifyInstance) {
 
         const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
         if (res.ok) {
-          const data = (await res.json()) as {
+          const data = (await res.json().catch(() => null)) as {
             full_name: string;
             default_branch: string;
             private: boolean;
-          };
+          } | null;
+          if (!data) {
+            return reply.send({ valid: false, error: "Invalid JSON response from GitHub" });
+          }
           reply.send({
             valid: true,
             repo: {
