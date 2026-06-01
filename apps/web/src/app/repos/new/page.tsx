@@ -444,7 +444,17 @@ function RepoStep({
         <input
           value={repoUrl}
           onChange={(e) => {
-            setRepoUrl(e.target.value);
+            const newUrl = e.target.value;
+            setRepoUrl(newUrl);
+
+            if (newUrl.includes("github.com")) {
+              setRepoPlatformHint("github");
+            } else if (newUrl.includes("gitlab.com")) {
+              setRepoPlatformHint("gitlab");
+            } else if (newUrl.includes("amazonaws.com")) {
+              setRepoPlatformHint("codecommit");
+            }
+
             if (validated) {
               // Reset validation when URL changes — but don't clear fields
               setValidated(false);
