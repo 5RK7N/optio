@@ -1185,10 +1185,18 @@ function AuthenticationSettings() {
         </p>
 
         <div className="space-y-2">
-          {(["github", "google", "gitlab"] as const).map((name) => {
+          {(["github", "google", "gitlab", "oidc"] as const).map((name) => {
             const enabled = providers.some((p) => p.name === name);
+            const provider = providers.find((p) => p.name === name);
             const displayName =
-              name === "github" ? "GitHub" : name === "google" ? "Google" : "GitLab";
+              provider?.displayName ||
+              (name === "github"
+                ? "GitHub"
+                : name === "google"
+                  ? "Google"
+                  : name === "gitlab"
+                    ? "GitLab"
+                    : "OIDC");
             const envPrefix = name.toUpperCase();
             return (
               <div
@@ -1204,7 +1212,9 @@ function AuthenticationSettings() {
                   <div>
                     <p className="text-sm font-medium">{displayName}</p>
                     <p className="text-[10px] text-text-muted">
-                      {`${envPrefix}_OAUTH_CLIENT_ID`} / {`${envPrefix}_OAUTH_CLIENT_SECRET`}
+                      {name === "oidc"
+                        ? "OIDC_ISSUER_URL / OIDC_CLIENT_ID / OIDC_CLIENT_SECRET / OIDC_DISPLAY_NAME / OIDC_SCOPES"
+                        : `${envPrefix}_OAUTH_CLIENT_ID / ${envPrefix}_OAUTH_CLIENT_SECRET`}
                     </p>
                   </div>
                 </div>
