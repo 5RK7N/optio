@@ -2156,7 +2156,7 @@ export default function SetupPage() {
                         setManualRepoUrl("");
                       }
                     }}
-                    placeholder="https://github.com/owner/repo or git@github.com:owner/repo.git"
+                    placeholder="https://example.com/path/to/repo.git"
                     className="flex-1 px-3 py-2 rounded-md bg-bg border border-border text-sm focus:outline-none focus:border-primary"
                   />
                   <button

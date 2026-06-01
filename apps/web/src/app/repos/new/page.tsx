@@ -451,7 +451,7 @@ function RepoStep({
             }
           }}
           onKeyDown={(e) => e.key === "Enter" && onValidate()}
-          placeholder="https://github.com/owner/repo"
+          placeholder="https://example.com/path/to/repo.git"
           className={cn(inputClass, "flex-1")}
           autoFocus
         />
