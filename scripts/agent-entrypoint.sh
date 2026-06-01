@@ -39,52 +39,43 @@ esac
 
 # Clone repo
 cd /workspace
-if git clone --branch "${OPTIO_REPO_BRANCH}" "${OPTIO_REPO_URL}" repo; then
-  echo "[optio] Repo cloned via HTTPS"
-else
-  echo "[optio] HTTPS clone failed. Falling back to SSH..."
+if [ -n "${SSH_KEY:-}" ]; then
+  echo "[optio] SSH_KEY is set. Setting up SSH..."
+  mkdir -p ~/.ssh
+  chmod 700 ~/.ssh
+  # Use printf %b to handle escaped newlines, remove carriage returns
+  # Process through awk to restore 70-character wrapping if newlines were lost during copy/paste
+  printf "%b\n" "${SSH_KEY}" | tr -d '\r' | awk '
+  {
+      if (match($0, /-----BEGIN [A-Z0-9 ]+-----/) && match($0, /-----END [A-Z0-9 ]+-----/)) {
+          h_start = match($0, /-----BEGIN [A-Z0-9 ]+-----/)
+          h_len = RLENGTH
+          header = substr($0, h_start, h_len)
 
-  # Setup SSH key if provided
-  if [ -n "${SSH_KEY:-}" ]; then
-    echo "[optio] Setting up SSH_KEY from environment"
-    mkdir -p ~/.ssh
-    chmod 700 ~/.ssh
-    # Use printf %b to handle escaped newlines, remove carriage returns
-    # Process through awk to restore 70-character wrapping if newlines were lost during copy/paste
-    printf "%b\n" "${SSH_KEY}" | tr -d '\r' | awk '
-    {
-        if (match($0, /-----BEGIN [A-Z0-9 ]+-----/) && match($0, /-----END [A-Z0-9 ]+-----/)) {
-            h_start = match($0, /-----BEGIN [A-Z0-9 ]+-----/)
-            h_len = RLENGTH
-            header = substr($0, h_start, h_len)
+          f_start = match($0, /-----END [A-Z0-9 ]+-----/)
+          f_len = RLENGTH
+          footer = substr($0, f_start, f_len)
 
-            f_start = match($0, /-----END [A-Z0-9 ]+-----/)
-            f_len = RLENGTH
-            footer = substr($0, f_start, f_len)
+          body = substr($0, h_start + h_len, f_start - (h_start + h_len))
+          gsub(/[[:space:]]/, "", body)
 
-            body = substr($0, h_start + h_len, f_start - (h_start + h_len))
-            gsub(/[[:space:]]/, "", body)
-
-            print header
-            len = length(body)
-            for (i=1; i<=len; i+=70) {
-                print substr(body, i, 70)
-            }
-            print footer
-            next
-        }
-        print $0
-    }
-    ' > ~/.ssh/id_rsa
-    chmod 600 ~/.ssh/id_rsa
-  fi
+          print header
+          len = length(body)
+          for (i=1; i<=len; i+=70) {
+              print substr(body, i, 70)
+          }
+          print footer
+          next
+      }
+      print $0
+  }
+  ' > ~/.ssh/id_rsa
+  chmod 600 ~/.ssh/id_rsa
 
   # Extract host for known_hosts
   SSH_HOST=$(echo "${OPTIO_REPO_URL}" | sed -E 's|^https?://([^/]+).*|\1|')
   if [ -n "${SSH_HOST}" ]; then
     echo "[optio] Adding ${SSH_HOST} to known_hosts"
-    mkdir -p ~/.ssh
-    chmod 700 ~/.ssh
     ssh-keyscan -H "${SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
   fi
 
@@ -94,8 +85,25 @@ else
     OPTIO_REPO_SSH_URL=$(echo "${OPTIO_REPO_URL}" | sed -E 's|^https?://([^/]+)/(.*)|git@\1:\2.git|')
   fi
   echo "[optio] Trying SSH URL: ${OPTIO_REPO_SSH_URL}"
-  GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new" git clone --branch "${OPTIO_REPO_BRANCH}" "${OPTIO_REPO_SSH_URL}" repo
-  echo "[optio] Repo cloned via SSH"
+  if GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new" git clone --branch "${OPTIO_REPO_BRANCH}" "${OPTIO_REPO_SSH_URL}" repo; then
+    echo "[optio] Repo cloned via SSH"
+  else
+    echo "[optio] SSH clone failed. Falling back to HTTPS..."
+    if git clone --branch "${OPTIO_REPO_BRANCH}" "${OPTIO_REPO_URL}" repo; then
+      echo "[optio] Repo cloned via HTTPS"
+    else
+      echo "[optio] Error: HTTPS clone failed." >&2
+      exit 1
+    fi
+  fi
+else
+  echo "[optio] SSH_KEY not set. Cloning via HTTPS..."
+  if git clone --branch "${OPTIO_REPO_BRANCH}" "${OPTIO_REPO_URL}" repo; then
+    echo "[optio] Repo cloned via HTTPS"
+  else
+    echo "[optio] Error: HTTPS clone failed." >&2
+    exit 1
+  fi
 fi
 cd repo
 
