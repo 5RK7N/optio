@@ -60,8 +60,8 @@ RUN npm install -g @github/copilot@1.0.20 || echo "WARN: @github/copilot install
 # unavailable (matches the @github/copilot and openclaw fallbacks).
 ARG OPENCODE_VERSION=latest
 RUN (curl -fsSL https://opencode.ai/install | bash \
-  && mv /root/.opencode/bin/opencode /usr/local/bin/ \
-  && rm -rf /root/.opencode) \
+  && mv $HOME/.opencode/bin/opencode /usr/local/bin/ \
+  && rm -rf $HOME/.opencode) \
   || echo "WARN: opencode install failed; opencode agent will not be available in this image"
 
 # Google Gemini CLI
