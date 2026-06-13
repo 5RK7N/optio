@@ -103,6 +103,14 @@ export class OpenCodeAdapter implements AgentAdapter {
           },
         },
       };
+
+      if (input.opencodeModel) {
+        configContent.provider.custom.models = {
+          [input.opencodeModel]: {
+            name: "Custom Model",
+          },
+        };
+      }
     }
 
     // Pre-seed a minimal opencode config so the CLI doesn't hit first-run setup
