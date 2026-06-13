@@ -145,6 +145,36 @@ describe("OpenCodeAdapter", () => {
       });
     });
 
+    it("configures custom provider in opencode config when opencodeBaseUrl and opencodeModel are provided", () => {
+      const config = adapter.buildContainerConfig({
+        ...baseInput,
+        opencodeBaseUrl: "http://lightllm-server:8080/v1",
+        opencodeModel: "model-name",
+      });
+      const configFile = config.setupFiles?.find((f) =>
+        f.path.includes(".config/opencode/opencode.json"),
+      );
+      expect(configFile).toBeDefined();
+      expect(JSON.parse(configFile!.content)).toEqual({
+        $schema: "https://opencode.ai/config.json",
+        provider: {
+          custom: {
+            npm: "@ai-sdk/openai-compatible",
+            name: "Custom OpenAI Compatible Provider",
+            options: {
+              baseURL: "http://lightllm-server:8080/v1",
+              apiKey: "${OPENCODE_API_KEY}",
+            },
+            models: {
+              "model-name": {
+                name: "Custom Model",
+              },
+            },
+          },
+        },
+      });
+    });
+
     it("includes task file in setup files when provided", () => {
       const config = adapter.buildContainerConfig({
         ...baseInput,
