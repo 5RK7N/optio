@@ -39,7 +39,7 @@ RUN npm install -g @anthropic-ai/claude-code
 # GitHub Copilot CLI
 RUN npm install -g @github/copilot@1.0.20 || echo "WARN: @github/copilot install failed"
 
-# OpenCode CLI (experimental)
+# OpenCode CLI 
 ARG OPENCODE_VERSION=latest
 RUN (curl -fsSL https://opencode.ai/install | bash \
   && mv $HOME/.opencode/bin/opencode /usr/local/bin/ \
@@ -49,7 +49,7 @@ RUN (curl -fsSL https://opencode.ai/install | bash \
 # Google Gemini CLI
 RUN npm install -g @google/gemini-cli
 
-# OpenClaw CLI (experimental)
+# OpenClaw CLI
 RUN npm install -g openclaw || echo "WARN: openclaw install failed"
 
 # Allow sudo for extra package installation at runtime

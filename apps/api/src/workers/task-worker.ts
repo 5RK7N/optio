@@ -1756,7 +1756,7 @@ export function buildAgentCommand(
       const resumeFlag = opts?.resumeSessionId
         ? ` --session ${JSON.stringify(opts.resumeSessionId)}`
         : "";
-      const commands = [`echo "[optio] Running OpenCode (experimental)..."`];
+      const commands = [`echo "[optio] Running OpenCode..."`];
       if (env.OPENCODE_API_KEY) {
         commands.push(`export OPENAI_API_KEY="$OPENCODE_API_KEY"`);
       }
@@ -1767,7 +1767,7 @@ export function buildAgentCommand(
         );
       }
       commands.push(
-        `opencode run --format json${modelFlag}${agentFlag}${resumeFlag} "$OPTIO_PROMPT"`,
+        `opencode run --format json --verbose${modelFlag}${agentFlag}${resumeFlag} "$OPTIO_PROMPT"`,
       );
       return commands;
     }
@@ -1790,7 +1790,7 @@ export function buildAgentCommand(
         ? ` --agent ${JSON.stringify(env.OPTIO_OPENCLAW_AGENT)}`
         : "";
       return [
-        `echo "[optio] Running OpenClaw (experimental)..."`,
+        `echo "[optio] Running OpenClaw..."`,
         `openclaw agent --output-format stream-json${openclawModelFlag}${openclawAgentFlag} "$OPTIO_PROMPT"`,
       ];
     }

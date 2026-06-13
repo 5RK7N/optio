@@ -66,9 +66,9 @@ const AGENT_RUNTIMES = [
   { value: "claude-code", label: "Claude Code" },
   { value: "codex", label: "OpenAI Codex" },
   { value: "copilot", label: "GitHub Copilot" },
-  { value: "opencode", label: "OpenCode (Experimental)" },
+  { value: "opencode", label: "OpenCode" },
   { value: "gemini", label: "Google Gemini" },
-  { value: "openclaw", label: "OpenClaw (Experimental)" },
+  { value: "openclaw", label: "OpenClaw" },
 ];
 
 const TRIGGER_TYPES = [
