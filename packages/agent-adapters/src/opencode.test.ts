@@ -167,7 +167,7 @@ describe("OpenCodeAdapter", () => {
             },
             models: {
               "model-name": {
-                name: "Custom Model",
+                name: "model-name",
               },
             },
           },
