@@ -158,17 +158,11 @@ function buildAgentCommand(
       const modelFlag = env.OPTIO_OPENCODE_MODEL
         ? ` --model ${JSON.stringify(env.OPTIO_OPENCODE_MODEL)}`
         : "";
-      const commands = [`echo "[optio] Running persistent agent turn (OpenCode)..."`];
-      if (env.OPENCODE_API_KEY) {
-        commands.push(`export OPENAI_API_KEY="$OPENCODE_API_KEY"`);
-      }
-      if (env.OPENAI_BASE_URL) {
-        commands.push(
-          `sed -i 's|\\$OPENCODE_API_KEY|'"$OPENCODE_API_KEY"'|g' /home/agent/.config/opencode/opencode.json`,
-        );
-      }
-      commands.push(`opencode run --format json${modelFlag} "$OPTIO_PROMPT"`);
-      return commands;
+
+      return [
+        `echo "[optio] Running persistent agent turn (OpenCode)..."`,
+        `opencode run --format json${modelFlag} "$OPTIO_PROMPT"`,
+      ];
     }
     case "gemini": {
       const geminiModelFlag = env.OPTIO_GEMINI_MODEL

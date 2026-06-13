@@ -59,10 +59,10 @@ export class OpenCodeAdapter implements AgentAdapter {
     // When using a custom base URL, provider API keys are optional — the adapter
     // sets a placeholder OPENAI_API_KEY in env that will be overridden if a real
     // secret exists. Without a custom base URL, require standard provider keys.
-    if (!input.opencodeBaseUrl) {
-      requiredSecrets.push("ANTHROPIC_API_KEY", "OPENAI_API_KEY");
-    } else {
+    if (input.opencodeBaseUrl) {
       requiredSecrets.push("OPENCODE_API_KEY");
+    } else {
+      requiredSecrets.push("ANTHROPIC_API_KEY", "OPENAI_API_KEY");
     }
 
     const setupFiles: AgentContainerConfig["setupFiles"] = [];
@@ -98,7 +98,7 @@ export class OpenCodeAdapter implements AgentAdapter {
             options: {
               baseURL: input.opencodeBaseUrl,
               // Will be populated dynamically via env var in worker wrapper
-              apiKey: "${OPENCODE_API_KEY}",
+              apiKey: "{env:OPENCODE_API_KEY}",
             },
           },
         },

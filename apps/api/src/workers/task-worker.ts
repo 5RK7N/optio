@@ -1756,20 +1756,11 @@ export function buildAgentCommand(
       const resumeFlag = opts?.resumeSessionId
         ? ` --session ${JSON.stringify(opts.resumeSessionId)}`
         : "";
-      const commands = [`echo "[optio] Running OpenCode..."`];
-      if (env.OPENCODE_API_KEY) {
-        commands.push(`export OPENAI_API_KEY="$OPENCODE_API_KEY"`);
-      }
-      if (env.OPENAI_BASE_URL || env.OPENCODE_DEFAULT_BASE_URL) {
-        // Hydrate the placeholder with the real API key dynamically in bash
-        commands.push(
-          `sed -i 's|\\$\\{OPENCODE_API_KEY\\}|'"$OPENCODE_API_KEY"'|g' /home/agent/.config/opencode/opencode.json`,
-        );
-      }
-      commands.push(
+
+      return [
+        `echo "[optio] Running OpenCode..."`,
         `opencode run --format json ${modelFlag}${agentFlag}${resumeFlag} "$OPTIO_PROMPT"`,
-      );
-      return commands;
+      ];
     }
     case "gemini": {
       const geminiModelFlag = env.OPTIO_GEMINI_MODEL
