@@ -107,7 +107,7 @@ export class OpenCodeAdapter implements AgentAdapter {
       if (input.opencodeModel) {
         configContent.provider.custom.models = {
           [input.opencodeModel]: {
-            name: "Custom Model",
+            name: input.opencodeModel,
           },
         };
       }
