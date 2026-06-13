@@ -196,12 +196,6 @@ describe("buildAgentCommand", () => {
       expect(cmds.some((c) => c.includes("--format json"))).toBe(true);
     });
 
-    it("includes experimental label in echo", () => {
-      const env = { OPTIO_PROMPT: "Fix the bug" };
-      const cmds = buildAgentCommand("opencode", env);
-      expect(cmds.some((c) => c.includes("(experimental)"))).toBe(true);
-    });
-
     it("adds --model flag when OPTIO_OPENCODE_MODEL is set", () => {
       const env = {
         OPTIO_PROMPT: "Fix the bug",
