@@ -163,7 +163,7 @@ describe("OpenCodeAdapter", () => {
             name: "Custom OpenAI Compatible Provider",
             options: {
               baseURL: "http://lightllm-server:8080/v1",
-              apiKey: "${OPENCODE_API_KEY}",
+              apiKey: "{env:OPENCODE_API_KEY}",
             },
             models: {
               "model-name": {
