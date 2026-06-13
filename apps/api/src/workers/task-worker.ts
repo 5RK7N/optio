@@ -1749,7 +1749,7 @@ export function buildAgentCommand(
     }
     case "opencode": {
       const model = env.OPENCODE_DEFAULT_MODEL || env.OPTIO_OPENCODE_MODEL;
-      const modelFlag = model ? ` --model ${JSON.stringify(model)}` : "";
+      const modelFlag = model ? ` --model custom/${JSON.stringify(model)}` : "";
       const agentFlag = env.OPTIO_OPENCODE_AGENT
         ? ` --agent ${JSON.stringify(env.OPTIO_OPENCODE_AGENT)}`
         : "";
@@ -1763,11 +1763,11 @@ export function buildAgentCommand(
       if (env.OPENAI_BASE_URL || env.OPENCODE_DEFAULT_BASE_URL) {
         // Hydrate the placeholder with the real API key dynamically in bash
         commands.push(
-          `sed -i 's|\\$OPENCODE_API_KEY|'"$OPENCODE_API_KEY"'|g' /home/agent/.config/opencode/opencode.json`,
+          `sed -i 's|\\$\\{OPENCODE_API_KEY\\}|'"$OPENCODE_API_KEY"'|g' /home/agent/.config/opencode/opencode.json`,
         );
       }
       commands.push(
-        `opencode run --format json --verbose${modelFlag}${agentFlag}${resumeFlag} "$OPTIO_PROMPT"`,
+        `opencode run --format json ${modelFlag}${agentFlag}${resumeFlag} "$OPTIO_PROMPT"`,
       );
       return commands;
     }
