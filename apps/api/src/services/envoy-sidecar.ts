@@ -30,6 +30,9 @@ export interface SecretProxySecrets {
   gitlabToken?: string;
   gitlabHost?: string; // defaults to "gitlab.com"
   anthropicApiKey?: string;
+  anthropicHost?: string;
+  anthropicPort?: number;
+  anthropicTls?: boolean;
 }
 
 /**
@@ -182,7 +185,22 @@ export function generateEnvoyConfig(secrets: SecretProxySecrets): string {
                         header: "PRIVATE-TOKEN"`);
   }
 
+
   if (secrets.anthropicApiKey) {
+    const anthropicHost = secrets.anthropicHost ?? "api.anthropic.com";
+    const anthropicPort = secrets.anthropicPort ?? 443;
+    const anthropicTls = secrets.anthropicTls ?? true;
+
+    let transportSocket = "";
+    if (anthropicTls) {
+      transportSocket = `
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          sni: ${anthropicHost}`;
+    }
+
     clusters.push(`
     - name: anthropic
       type: STRICT_DNS
@@ -194,13 +212,8 @@ export function generateEnvoyConfig(secrets: SecretProxySecrets): string {
               - endpoint:
                   address:
                     socket_address:
-                      address: api.anthropic.com
-                      port_value: 443
-      transport_socket:
-        name: envoy.transport_sockets.tls
-        typed_config:
-          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-          sni: api.anthropic.com`);
+                      address: ${anthropicHost}
+                      port_value: ${anthropicPort}${transportSocket}`);
 
     routes.push(`
               - match:
@@ -208,7 +221,7 @@ export function generateEnvoyConfig(secrets: SecretProxySecrets): string {
                   headers:
                     - name: ":authority"
                       string_match:
-                        contains: "api.anthropic.com"
+                        contains: "${anthropicHost}"
                 route:
                   cluster: anthropic
                   upgrade_configs:
@@ -315,7 +328,10 @@ export function generateSecretInitScript(secrets: SecretProxySecrets): string {
     lines.push(`chmod 600 ${SECRET_MOUNT_PATH}/gitlab-token`);
   }
 
+
   if (secrets.anthropicApiKey) {
+    const anthropicHost = secrets.anthropicHost ?? "api.anthropic.com";
+    const anthropicPort = secrets.anthropicPort ?? 443;
     lines.push(`printf '%s' "$ANTHROPIC_API_KEY" > ${SECRET_MOUNT_PATH}/anthropic-api-key`);
     lines.push(`chmod 600 ${SECRET_MOUNT_PATH}/anthropic-api-key`);
   }

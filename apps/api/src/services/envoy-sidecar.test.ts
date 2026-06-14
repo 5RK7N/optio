@@ -292,3 +292,18 @@ describe("PROXIED_SECRET_ENV_VARS", () => {
     expect(PROXIED_SECRET_ENV_VARS).toHaveLength(3);
   });
 });
+
+describe("generateEnvoyConfig with custom anthropic config", () => {
+  it("uses custom anthropicHost and anthropicPort", () => {
+    const config = generateEnvoyConfig({
+      anthropicApiKey: "sk-ant-test",
+      anthropicHost: "my-custom-gateway.com",
+      anthropicPort: 4000
+    });
+
+    expect(config).not.toContain("api.anthropic.com");
+    expect(config).toContain("my-custom-gateway.com");
+    expect(config).toContain("port_value: 4000");
+    expect(config).toContain("x-api-key");
+  });
+});

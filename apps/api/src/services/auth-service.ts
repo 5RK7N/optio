@@ -1,3 +1,4 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
 import { execSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -205,7 +206,7 @@ export async function getClaudeUsage(): Promise<ClaudeUsageResult> {
   }
 
   try {
-    const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
+    const res = await fetch(`${ANTHROPIC_BASE_URL}/api/oauth/usage`, {
       headers: {
         Authorization: `Bearer ${auth.token}`,
         "anthropic-beta": "oauth-2025-04-20",
