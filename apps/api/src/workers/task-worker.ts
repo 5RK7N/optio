@@ -383,6 +383,9 @@ export function startTaskWorker() {
           claudeVertexServiceAccountKey,
         });
 
+        // Ensure prompt is in environment (used in shell command execution)
+        agentConfig.env.OPTIO_PROMPT = finalRenderedPrompt;
+
         // ── MCP servers & custom skills injection ────────────────────
         const { getMcpServersForTask, buildMcpJsonContent } =
           await import("../services/mcp-server-service.js");
@@ -816,6 +819,17 @@ export function startTaskWorker() {
         // Execute the task in the repo pod via worktree
         // On retry to the same pod, reset existing worktree instead of recreating
         const shouldResetWorktree = isRetry && pod.id === (task as any).lastPodId;
+
+        // Debug: log prompt presence before execution
+        log.info(
+          {
+            hasPrompt: !!allEnv.OPTIO_PROMPT,
+            promptLength: allEnv.OPTIO_PROMPT?.length ?? 0,
+            promptPreview: allEnv.OPTIO_PROMPT?.substring(0, 100),
+          },
+          "OPTIO_PROMPT env var check before execution",
+        );
+
         const execSession = await repoPool.execTaskInRepoPod(pod, task.id, agentCommand, allEnv, {
           resetWorktree: shouldResetWorktree,
         });

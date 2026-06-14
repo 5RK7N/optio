@@ -332,6 +332,9 @@ export function startPrReviewWorker() {
           googleCloudLocation,
         });
 
+        // Ensure prompt is in environment (used in shell command execution)
+        agentConfig.env.OPTIO_PROMPT = renderedPrompt;
+
         // ── MCP + connections + skills (shared with task-worker) ──
         const { getMcpServersForTask, buildMcpJsonContent } =
           await import("../services/mcp-server-service.js");
