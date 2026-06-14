@@ -192,9 +192,11 @@ describe("buildAgentCommand", () => {
     it("produces an opencode run command with --format json and skips permissions", () => {
       const env = { OPTIO_PROMPT: "Fix the bug" };
       const cmds = buildAgentCommand("opencode", env);
-      expect(cmds.some((c) => c.includes("opencode run --dangerously-skip-permissions"))).toBe(true);
+      expect(cmds.some((c) => c.includes("opencode run --dangerously-skip-permissions"))).toBe(
+        true,
+      );
       expect(cmds.some((c) => c.includes("--format json"))).toBe(true);
-      expect(cmds.some((c) => c.includes("-- \"$OPTIO_PROMPT\""))).toBe(true);
+      expect(cmds.some((c) => c.includes('-- "$OPTIO_PROMPT"'))).toBe(true);
     });
 
     it("adds --model flag when OPTIO_OPENCODE_MODEL is set", () => {
@@ -228,6 +230,27 @@ describe("buildAgentCommand", () => {
       });
       expect(cmds.some((c) => c.includes("--session"))).toBe(true);
       expect(cmds.some((c) => c.includes("oc-sess-abc"))).toBe(true);
+    });
+
+    it("places flags before the prompt separator and uses literal $OPTIO_PROMPT", () => {
+      const env = { OPTIO_PROMPT: "Inspect" };
+      const cmds = buildAgentCommand("opencode", env);
+      const cmd = cmds.find((c) => c.startsWith("opencode run"));
+      expect(cmd).toBeDefined();
+      // Ensure the dangerous skip and format flags are present and the prompt
+      // is passed after the `--` separator as the literal shell variable.
+      expect(cmd).toMatch(/--dangerously-skip-permissions/);
+      expect(cmd).toMatch(/--format json/);
+      expect(cmd).toMatch(/--\s+"\$OPTIO_PROMPT"$/);
+    });
+
+    it("resumes with --session flag placed before the prompt separator", () => {
+      const env = { OPTIO_PROMPT: "Resume work" };
+      const cmds = buildAgentCommand("opencode", env, { resumeSessionId: "oc-sess-xyz" });
+      const cmd = cmds.find((c) => c.startsWith("opencode run"));
+      expect(cmd).toBeDefined();
+      expect(cmd).toMatch(/--session\s+"oc-sess-xyz"/);
+      expect(cmd).toMatch(/--session[\s\S]*--\s+"\$OPTIO_PROMPT"$/);
     });
   });
 

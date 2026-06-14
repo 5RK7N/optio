@@ -1773,7 +1773,6 @@ export function buildAgentCommand(
 
       return [
         `echo "[optio] Running OpenCode..."`,
-        `echo "Command: opencode run --dangerously-skip-permissions --format json ${modelFlag}${agentFlag}${resumeFlag} -- \\$OPTIO_PROMPT"`,
         `opencode run --dangerously-skip-permissions --format json ${modelFlag}${agentFlag}${resumeFlag} -- "$OPTIO_PROMPT"`,
       ];
     }
