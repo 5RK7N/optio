@@ -189,11 +189,12 @@ describe("buildAgentCommand", () => {
   });
 
   describe("opencode agent", () => {
-    it("produces an opencode run command with --format json", () => {
+    it("produces an opencode run command with --format json and skips permissions", () => {
       const env = { OPTIO_PROMPT: "Fix the bug" };
       const cmds = buildAgentCommand("opencode", env);
-      expect(cmds.some((c) => c.includes("opencode run"))).toBe(true);
+      expect(cmds.some((c) => c.includes("opencode run --dangerously-skip-permissions"))).toBe(true);
       expect(cmds.some((c) => c.includes("--format json"))).toBe(true);
+      expect(cmds.some((c) => c.includes("-- \"$OPTIO_PROMPT\""))).toBe(true);
     });
 
     it("adds --model flag when OPTIO_OPENCODE_MODEL is set", () => {
