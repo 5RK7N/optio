@@ -199,7 +199,7 @@ case "${OPTIO_AGENT_TYPE}" in
     copilot ${COPILOT_FLAGS} -p "${OPTIO_PROMPT}"
     ;;
   opencode)
-    echo "[optio] Running OpenCode (experimental)..."
+    echo "[optio] Running OpenCode..."
     OPENCODE_FLAGS="run --dangerously-skip-permissions --format json"
     if [ -n "${OPTIO_OPENCODE_MODEL:-}" ]; then
       OPENCODE_FLAGS="${OPENCODE_FLAGS} --model ${OPTIO_OPENCODE_MODEL}"

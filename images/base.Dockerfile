@@ -54,7 +54,7 @@ RUN npm install -g @anthropic-ai/claude-code
 # GitHub Copilot CLI (pinned + best-effort — package may be temporarily unavailable)
 RUN npm install -g @github/copilot@1.0.20 || echo "WARN: @github/copilot install failed; copilot agent will not be available in this image"
 
-# OpenCode CLI (experimental — pinned version for stable JSON output).
+# OpenCode CLI (pinned version for stable JSON output).
 # Best-effort: opencode.ai is a single point of failure for the install
 # script, so let the build succeed even when the upstream is briefly
 # unavailable (matches the @github/copilot and openclaw fallbacks).
