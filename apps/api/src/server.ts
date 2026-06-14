@@ -22,6 +22,7 @@ import { secretRoutes } from "./routes/secrets.js";
 import { ticketRoutes } from "./routes/tickets.js";
 import { setupRoutes } from "./routes/setup.js";
 import { authRoutes } from "./routes/auth.js";
+import { passkeysRoutes } from "./routes/passkeys.js";
 import { resumeRoutes } from "./routes/resume.js";
 import { promptTemplateRoutes } from "./routes/prompt-templates.js";
 import { repoRoutes } from "./routes/repos.js";

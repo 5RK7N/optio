@@ -547,6 +547,13 @@
       "when": 1777400000000,
       "tag": "1777400000_session_chat_events",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1781440576129,
+      "tag": "1777500000_add_passkeys",
+      "breakpoints": true
     }
   ]
 }

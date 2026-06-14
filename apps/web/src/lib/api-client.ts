@@ -776,6 +776,29 @@ export const api = {
 
   logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
 
+  // Passkeys
+  getPasskeyStatus: () => request<{ enabled: boolean }>("/api/auth/passkey/status"),
+  generatePasskeyRegistrationOptions: () =>
+    request<any>("/api/auth/passkey/register/generate-options", { method: "POST" }),
+  verifyPasskeyRegistration: (response: any) =>
+    request<{ verified: boolean }>("/api/auth/passkey/register/verify", {
+      method: "POST",
+      body: JSON.stringify(response),
+    }),
+  generatePasskeyAuthenticationOptions: (email?: string) =>
+    request<any>("/api/auth/passkey/login/generate-options", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  verifyPasskeyAuthentication: (response: any) =>
+    request<{ token: string }>("/api/auth/passkey/login/verify", {
+      method: "POST",
+      body: JSON.stringify(response),
+    }),
+  listPasskeys: () => request<{ passkeys: any[] }>("/api/auth/passkeys"),
+  deletePasskey: (id: string) =>
+    request<{ ok: boolean }>(`/api/auth/passkeys/${id}`, { method: "DELETE" }),
+
   // Users
   lookupUserByEmail: (email: string) =>
     request<{

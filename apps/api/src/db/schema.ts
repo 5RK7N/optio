@@ -27,10 +27,32 @@ export const users = pgTable("users", {
   displayName: text("display_name").notNull(),
   avatarUrl: text("avatar_url"),
   defaultWorkspaceId: uuid("default_workspace_id"), // last-used workspace
+  currentChallenge: text("current_challenge"),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Passkeys ──────────────────────────────────────────────────────────────────
+
+export const passkeys = pgTable(
+  "passkeys",
+  {
+    id: text("id").primaryKey(), // The Credential ID
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull().default("Passkey"),
+    publicKey: text("public_key").notNull(),
+    counter: integer("counter").notNull().default(0),
+    deviceType: text("device_type").notNull(),
+    backedUp: boolean("backed_up").notNull().default(false),
+    transports: text("transports"), // Comma-separated transports
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("passkeys_user_id_idx").on(table.userId)],
+);
 
 // ── Workspaces ──────────────────────────────────────────────────────────────
 
