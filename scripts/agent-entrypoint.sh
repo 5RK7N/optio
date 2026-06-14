@@ -200,14 +200,14 @@ case "${OPTIO_AGENT_TYPE}" in
     ;;
   opencode)
     echo "[optio] Running OpenCode (experimental)..."
-    OPENCODE_FLAGS="run --format json"
+    OPENCODE_FLAGS="run --dangerously-skip-permissions --format json"
     if [ -n "${OPTIO_OPENCODE_MODEL:-}" ]; then
       OPENCODE_FLAGS="${OPENCODE_FLAGS} --model ${OPTIO_OPENCODE_MODEL}"
     fi
     if [ -n "${OPTIO_OPENCODE_AGENT:-}" ]; then
       OPENCODE_FLAGS="${OPENCODE_FLAGS} --agent ${OPTIO_OPENCODE_AGENT}"
     fi
-    opencode ${OPENCODE_FLAGS} "${OPTIO_PROMPT}"
+    opencode ${OPENCODE_FLAGS} -- "${OPTIO_PROMPT}"
     ;;
   gemini)
     echo "[optio] Running Google Gemini..."

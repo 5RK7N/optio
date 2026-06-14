@@ -110,7 +110,7 @@ export function buildWorkflowAgentCommand(
 
       return [
         `echo "[optio] Running workflow agent (OpenCode)..."`,
-        `opencode run --format json${modelFlag} "$OPTIO_PROMPT"`,
+        `opencode run --dangerously-skip-permissions --format json${modelFlag} -- "$OPTIO_PROMPT"`,
       ];
     }
     case "gemini": {
