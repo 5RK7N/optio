@@ -1,3 +1,4 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
@@ -130,7 +131,7 @@ describe("sensitive-data enforcement", () => {
   });
 
   it("sanitizeUrl strips API keys from query params", () => {
-    const url = "https://api.anthropic.com/v1/messages?key=sk-ant-abcdef123456";
+    const url = `${ANTHROPIC_BASE_URL}/v1/messages?key=sk-ant-abcdef123456`;
     const sanitized = sanitizeUrl(url);
     expect(sanitized).not.toContain("sk-ant-");
   });

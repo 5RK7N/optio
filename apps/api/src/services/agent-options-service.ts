@@ -1,3 +1,4 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
 import { createHash } from "node:crypto";
 import {
   PROVIDER_CATALOGS,
@@ -18,7 +19,7 @@ type LiveProbe = (apiKey: string) => Promise<string[]>;
 
 /** Anthropic: GET /v1/models → data[].id. */
 async function probeAnthropic(apiKey: string): Promise<string[]> {
-  const res = await fetch("https://api.anthropic.com/v1/models?limit=100", {
+  const res = await fetch(`${ANTHROPIC_BASE_URL}/v1/models?limit=100`, {
     headers: {
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",

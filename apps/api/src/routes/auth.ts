@@ -1,3 +1,4 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
 import { randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
@@ -275,7 +276,7 @@ export async function authRoutes(rawApp: FastifyInstance) {
       // If no cached result, validate the token against the Anthropic API directly
       if (!expired && lastValidated === null && result.available && result.token) {
         try {
-          const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
+          const res = await fetch(`${ANTHROPIC_BASE_URL}/api/oauth/usage`, {
             headers: {
               Authorization: `Bearer ${result.token}`,
               "anthropic-beta": "oauth-2025-04-20",

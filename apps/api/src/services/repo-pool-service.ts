@@ -1,3 +1,5 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
+import { getAnthropicHost, getAnthropicPort, isAnthropicTls } from "../config/anthropic.js";
 import { randomUUID } from "node:crypto";
 import { eq, and, lt, sql, asc } from "drizzle-orm";
 import { db } from "../db/client.js";
@@ -432,9 +434,13 @@ spec:
       const envoyImage = process.env.OPTIO_ENVOY_IMAGE ?? "envoyproxy/envoy:v1.31-latest";
       const pullPolicy = (process.env.OPTIO_IMAGE_PULL_POLICY as string) ?? "IfNotPresent";
 
+      env.ANTHROPIC_BASE_URL = ANTHROPIC_BASE_URL;
       const proxySecrets: SecretProxySecrets = {
         githubToken: env.GITHUB_TOKEN,
         anthropicApiKey: env.ANTHROPIC_API_KEY,
+        anthropicHost: getAnthropicHost(),
+        anthropicPort: getAnthropicPort(),
+        anthropicTls: isAnthropicTls(),
       };
 
       const envoyConfig = generateEnvoyConfig(proxySecrets);
@@ -677,9 +683,13 @@ async function createRepoPodViaStatefulSet(
     if (secretProxy) {
       const envoyImage = process.env.OPTIO_ENVOY_IMAGE ?? "envoyproxy/envoy:v1.31-latest";
       const pullPolicy = (process.env.OPTIO_IMAGE_PULL_POLICY as string) ?? "IfNotPresent";
+      env.ANTHROPIC_BASE_URL = ANTHROPIC_BASE_URL;
       const proxySecrets: SecretProxySecrets = {
         githubToken: env.GITHUB_TOKEN,
         anthropicApiKey: env.ANTHROPIC_API_KEY,
+        anthropicHost: getAnthropicHost(),
+        anthropicPort: getAnthropicPort(),
+        anthropicTls: isAnthropicTls(),
       };
       const envoyConfig = generateEnvoyConfig(proxySecrets);
       const configMapName = `envoy-config-${stsName}`;
