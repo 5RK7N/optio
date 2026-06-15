@@ -22,9 +22,6 @@ import {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-
-
-
 /**
  * Fallback when the stored model ID is unrecognised (not a known alias, not a
  * cataloged dated id). Kept as a concrete dated id so an Anthropic API call

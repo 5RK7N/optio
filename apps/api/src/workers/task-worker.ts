@@ -620,6 +620,9 @@ export function startTaskWorker() {
           taskUserId,
         );
         const allEnv: Record<string, string> = { ...agentConfig.env, ...resolvedSecrets };
+        if (process.env.ANTHROPIC_BASE_URL) {
+          allEnv.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
+        }
 
         // Resolve git platform tokens (not part of adapter requiredSecrets since they're infra-level)
         for (const secretName of ["GITHUB_TOKEN", "GITLAB_TOKEN", "GITLAB_HOST"]) {

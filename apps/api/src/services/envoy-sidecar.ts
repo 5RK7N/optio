@@ -185,7 +185,6 @@ export function generateEnvoyConfig(secrets: SecretProxySecrets): string {
                         header: "PRIVATE-TOKEN"`);
   }
 
-
   if (secrets.anthropicApiKey) {
     const anthropicHost = secrets.anthropicHost ?? "api.anthropic.com";
     const anthropicPort = secrets.anthropicPort ?? 443;
@@ -327,7 +326,6 @@ export function generateSecretInitScript(secrets: SecretProxySecrets): string {
     lines.push(`printf '%s' "$GITLAB_TOKEN" > ${SECRET_MOUNT_PATH}/gitlab-token`);
     lines.push(`chmod 600 ${SECRET_MOUNT_PATH}/gitlab-token`);
   }
-
 
   if (secrets.anthropicApiKey) {
     const anthropicHost = secrets.anthropicHost ?? "api.anthropic.com";

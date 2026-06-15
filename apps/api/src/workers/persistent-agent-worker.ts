@@ -330,6 +330,9 @@ export function startPersistentAgentWorker() {
           OPTIO_AGENT_TOKEN: agentId,
           OPTIO_API_URL: apiUrl,
         };
+        if (process.env.ANTHROPIC_BASE_URL) {
+          env.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
+        }
         if (claimedAgent.model) env.OPTIO_CLAUDE_MODEL = claimedAgent.model;
 
         if (claudeAuthMode === "api-key") {

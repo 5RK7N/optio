@@ -377,6 +377,9 @@ export function startWorkflowWorker() {
           OPTIO_AGENT_TYPE: workflow.agentRuntime,
           OPTIO_AUTH_MODE: claudeAuthMode,
         };
+        if (process.env.ANTHROPIC_BASE_URL) {
+          env.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
+        }
 
         // Inject model config
         if (workflow.model) {

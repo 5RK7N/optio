@@ -298,7 +298,7 @@ describe("generateEnvoyConfig with custom anthropic config", () => {
     const config = generateEnvoyConfig({
       anthropicApiKey: "sk-ant-test",
       anthropicHost: "my-custom-gateway.com",
-      anthropicPort: 4000
+      anthropicPort: 4000,
     });
 
     expect(config).not.toContain("api.anthropic.com");

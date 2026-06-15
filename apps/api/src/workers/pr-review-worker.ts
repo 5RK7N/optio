@@ -439,6 +439,9 @@ export function startPrReviewWorker() {
           userId,
         );
         const allEnv: Record<string, string> = { ...agentConfig.env, ...resolvedSecrets };
+        if (process.env.ANTHROPIC_BASE_URL) {
+          allEnv.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
+        }
 
         for (const secretName of ["GITHUB_TOKEN", "GITLAB_TOKEN", "GITLAB_HOST"]) {
           if (!allEnv[secretName]) {
