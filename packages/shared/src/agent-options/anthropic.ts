@@ -11,15 +11,27 @@ export const ANTHROPIC_CATALOG: ProviderCatalog = {
   modelField: "claudeModel",
   models: [
     {
-      id: "claude-opus-4-7",
-      label: "Opus 4.7",
+      id: "claude-opus-4-8",
+      label: "Opus 4.8",
       family: "opus",
       latest: true,
       source: "baseline",
     },
     {
+      id: "claude-opus-4-7",
+      label: "Opus 4.7",
+      family: "opus",
+      source: "baseline",
+    },
+    {
       id: "claude-opus-4-6",
       label: "Opus 4.6",
+      family: "opus",
+      source: "baseline",
+    },
+    {
+      id: "claude-opus-4-5-20251101",
+      label: "Opus 4.5",
       family: "opus",
       source: "baseline",
     },
@@ -31,7 +43,7 @@ export const ANTHROPIC_CATALOG: ProviderCatalog = {
       source: "baseline",
     },
     {
-      id: "claude-sonnet-4-5",
+      id: "claude-sonnet-4-5-20250929",
       label: "Sonnet 4.5",
       family: "sonnet",
       source: "baseline",
