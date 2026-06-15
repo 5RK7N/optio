@@ -439,7 +439,18 @@ export function startPrReviewWorker() {
           userId,
         );
         const allEnv: Record<string, string> = { ...agentConfig.env, ...resolvedSecrets };
-        if (process.env.ANTHROPIC_BASE_URL) {
+
+        const anthropicBaseUrlSecret = await retrieveSecretWithFallback(
+          "ANTHROPIC_BASE_URL",
+          "global",
+          workspaceId,
+          userId,
+        ).catch(() => null);
+        if (anthropicBaseUrlSecret) {
+          allEnv.ANTHROPIC_BASE_URL = anthropicBaseUrlSecret as string;
+        }
+
+        if (process.env.ANTHROPIC_BASE_URL && !allEnv.ANTHROPIC_BASE_URL) {
           allEnv.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
         }
 

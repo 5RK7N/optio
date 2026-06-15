@@ -620,7 +620,18 @@ export function startTaskWorker() {
           taskUserId,
         );
         const allEnv: Record<string, string> = { ...agentConfig.env, ...resolvedSecrets };
-        if (process.env.ANTHROPIC_BASE_URL) {
+
+        const anthropicBaseUrlSecret = await retrieveSecretWithFallback(
+          "ANTHROPIC_BASE_URL",
+          "global",
+          taskWorkspaceId,
+          taskUserId,
+        ).catch(() => null);
+        if (anthropicBaseUrlSecret) {
+          allEnv.ANTHROPIC_BASE_URL = anthropicBaseUrlSecret as string;
+        }
+
+        if (process.env.ANTHROPIC_BASE_URL && !allEnv.ANTHROPIC_BASE_URL) {
           allEnv.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
         }
 
@@ -1930,7 +1941,11 @@ export function inferExitCode(agentType: string, logs: string): number {
           continue; // Skip JSON lines — errors inside tool output are not fatal
         } catch {
           // Raw output line — check for fatal errors
-          if (trimmed.includes("fatal:") || trimmed.includes("Error: authentication_failed")) {
+          if (
+            trimmed.includes("fatal:") ||
+            trimmed.includes("Error: authentication_failed") ||
+            trimmed.toLowerCase().includes("invalid api key")
+          ) {
             return 1;
           }
         }

@@ -318,6 +318,11 @@ describe("inferExitCode", () => {
       expect(inferExitCode("claude-code", logs)).toBe(1);
     });
 
+    it("returns 1 on invalid API key", () => {
+      const logs = "Invalid API key · Fix external API key\n";
+      expect(inferExitCode("claude-code", logs)).toBe(1);
+    });
+
     it("returns 0 when exit 1 appears in logs (not a real error signal)", () => {
       const logs = "some output\nexit 1\nmore output\n";
       expect(inferExitCode("claude-code", logs)).toBe(0);

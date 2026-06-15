@@ -381,6 +381,16 @@ export function startWorkflowWorker() {
           env.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
         }
 
+        const anthropicBaseUrlSecret = await retrieveSecretWithFallback(
+          "ANTHROPIC_BASE_URL",
+          "global",
+          workspaceId,
+          workflowUserId,
+        ).catch(() => null);
+        if (anthropicBaseUrlSecret) {
+          env.ANTHROPIC_BASE_URL = anthropicBaseUrlSecret as string;
+        }
+
         // Inject model config
         if (workflow.model) {
           env.OPTIO_CLAUDE_MODEL = workflow.model;

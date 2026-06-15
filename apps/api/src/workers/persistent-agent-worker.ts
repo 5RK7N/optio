@@ -333,6 +333,17 @@ export function startPersistentAgentWorker() {
         if (process.env.ANTHROPIC_BASE_URL) {
           env.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
         }
+
+        const anthropicBaseUrlSecret = await retrieveSecretWithFallback(
+          "ANTHROPIC_BASE_URL",
+          "global",
+          claimedAgent.workspaceId ?? null,
+          claimedAgent.createdBy ?? null,
+        ).catch(() => null);
+        if (anthropicBaseUrlSecret) {
+          env.ANTHROPIC_BASE_URL = anthropicBaseUrlSecret as string;
+        }
+
         if (claimedAgent.model) env.OPTIO_CLAUDE_MODEL = claimedAgent.model;
 
         if (claudeAuthMode === "api-key") {
