@@ -7,8 +7,8 @@ echo "[optio] Repo: ${OPTIO_REPO_URL} (branch: ${OPTIO_REPO_BRANCH})"
 echo "[optio] Auth mode: ${OPTIO_AUTH_MODE:-api-key}"
 
 # Configure git
-git config --global user.name "Optio Agent"
-git config --global user.email "optio-agent@noreply.github.com"
+git config --global user.name "Code Agent"
+git config --global user.email "agent@railigen.host"
 
 # Authenticate CLI tools
 if [ -n "${GITHUB_TOKEN:-}" ]; then
