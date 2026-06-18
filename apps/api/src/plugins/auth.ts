@@ -64,6 +64,7 @@ const PUBLIC_PREFIXES = [
   "/api/hooks/",
   "/ws/",
   "/api/internal/git-credentials",
+  "/api/internal/persistent-agents",
   "/docs",
 ];
 

@@ -182,6 +182,13 @@ describe("isPublicRoute", () => {
     expect(isPublicRoute("/api/internal/git-credentials")).toBe(true);
   });
 
+  it("allows /api/internal/persistent-agents", () => {
+    expect(isPublicRoute("/api/internal/persistent-agents")).toBe(true);
+    expect(isPublicRoute("/api/internal/persistent-agents/send")).toBe(true);
+    expect(isPublicRoute("/api/internal/persistent-agents/broadcast")).toBe(true);
+    expect(isPublicRoute("/api/internal/persistent-agents/inbox")).toBe(true);
+  });
+
   // ─── Public auth routes (OAuth flow) ───
 
   it("allows /api/auth/providers", () => {
