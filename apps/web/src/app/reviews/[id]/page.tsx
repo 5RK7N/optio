@@ -358,7 +358,7 @@ export default function ReviewDetailPage({ params }: { params: Promise<{ id: str
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 hover:text-primary"
             >
-              View on {review.prUrl.includes("gitlab") ? "GitLab" : "GitHub"}
+              View PR/MR
               <ExternalLink className="w-3 h-3" />
             </a>
           </>
