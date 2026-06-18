@@ -87,7 +87,7 @@ describe("resolveModelId", () => {
 
   it("returns the latest-marked model when no input is provided", () => {
     // Pick a provider with an explicit `latest` flag.
-    expect(resolveModelId("anthropic", undefined)).toBe("claude-opus-4-7");
+    expect(resolveModelId("anthropic", undefined)).toBe("claude-opus-4-8");
   });
 
   it("returns undefined for free-text providers with no baseline models", () => {
@@ -102,7 +102,7 @@ describe("resolveModelId", () => {
   });
 
   it("treats an empty string like undefined", () => {
-    expect(resolveModelId("anthropic", "")).toBe("claude-opus-4-7");
+    expect(resolveModelId("anthropic", "")).toBe("claude-opus-4-8");
   });
 
   it("resolves gemini-pro alias", () => {
@@ -113,19 +113,19 @@ describe("resolveModelId", () => {
 describe("mergeLiveModels", () => {
   it("appends new live model ids not in the baseline", () => {
     const merged = mergeLiveModels(ANTHROPIC_CATALOG, [
-      "claude-opus-4-7",
+      "claude-opus-4-8",
       "claude-opus-4-8-future",
     ]);
     const ids = merged.models.map((m) => m.id);
     expect(ids).toContain("claude-opus-4-8-future");
     // Original id is not duplicated
-    expect(ids.filter((id) => id === "claude-opus-4-7").length).toBe(1);
+    expect(ids.filter((id) => id === "claude-opus-4-8").length).toBe(1);
   });
 
   it("preserves baseline metadata when a live id matches", () => {
-    const opus = ANTHROPIC_CATALOG.models.find((m) => m.id === "claude-opus-4-7")!;
-    const merged = mergeLiveModels(ANTHROPIC_CATALOG, ["claude-opus-4-7"]);
-    const mergedOpus = merged.models.find((m) => m.id === "claude-opus-4-7")!;
+    const opus = ANTHROPIC_CATALOG.models.find((m) => m.id === "claude-opus-4-8")!;
+    const merged = mergeLiveModels(ANTHROPIC_CATALOG, ["claude-opus-4-8"]);
+    const mergedOpus = merged.models.find((m) => m.id === "claude-opus-4-8")!;
     expect(mergedOpus.label).toBe(opus.label);
     expect(mergedOpus.latest).toBe(true);
     expect(mergedOpus.source).toBe("baseline");
