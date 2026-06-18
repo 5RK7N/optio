@@ -177,7 +177,7 @@ export function PrBrowser() {
           value={prUrl}
           onChange={(e) => setPrUrl(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleUrlSubmit()}
-          placeholder="Paste a PR URL to review (e.g., https://github.com/owner/repo/pull/123)"
+          placeholder="Paste a PR URL to review (e.g., https://example.com/path/to/repo/pull/123)"
           className="flex-1 px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none"
         />
         <button
