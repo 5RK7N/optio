@@ -332,6 +332,9 @@ export function startPrReviewWorker() {
           googleCloudLocation,
         });
 
+        // Ensure prompt is in environment (used in shell command execution)
+        agentConfig.env.OPTIO_PROMPT = renderedPrompt;
+
         // ── MCP + connections + skills (shared with task-worker) ──
         const { getMcpServersForTask, buildMcpJsonContent } =
           await import("../services/mcp-server-service.js");
@@ -436,6 +439,20 @@ export function startPrReviewWorker() {
           userId,
         );
         const allEnv: Record<string, string> = { ...agentConfig.env, ...resolvedSecrets };
+
+        const anthropicBaseUrlSecret = await retrieveSecretWithFallback(
+          "ANTHROPIC_BASE_URL",
+          "global",
+          workspaceId,
+          userId,
+        ).catch(() => null);
+        if (anthropicBaseUrlSecret) {
+          allEnv.ANTHROPIC_BASE_URL = anthropicBaseUrlSecret as string;
+        }
+
+        if (process.env.ANTHROPIC_BASE_URL && !allEnv.ANTHROPIC_BASE_URL) {
+          allEnv.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
+        }
 
         for (const secretName of ["GITHUB_TOKEN", "GITLAB_TOKEN", "GITLAB_HOST"]) {
           if (!allEnv[secretName]) {

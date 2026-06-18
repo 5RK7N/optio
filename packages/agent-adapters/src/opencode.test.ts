@@ -71,7 +71,7 @@ describe("OpenCodeAdapter", () => {
       const config = adapter.buildContainerConfig(baseInput);
       expect(config.env.OPTIO_TASK_ID).toBe("test-123");
       expect(config.env.OPTIO_AGENT_TYPE).toBe("opencode");
-      expect(config.env.OPTIO_BRANCH_NAME).toBe("optio/task-test-123");
+      expect(config.env.OPTIO_BRANCH_NAME).toBe("agent/task-test-123");
       expect(config.env.OPTIO_REPO_URL).toBe("https://github.com/org/repo");
       expect(config.env.OPTIO_REPO_BRANCH).toBe("main");
     });

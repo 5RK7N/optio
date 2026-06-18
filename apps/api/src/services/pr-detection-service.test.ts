@@ -105,7 +105,7 @@ describe("checkExistingPr", () => {
     });
 
     expect(mockPlatform.listOpenPullRequests).toHaveBeenCalledWith(expect.any(Object), {
-      branch: "optio/task-task-123",
+      branch: "agent/task-task-123",
     });
   });
 

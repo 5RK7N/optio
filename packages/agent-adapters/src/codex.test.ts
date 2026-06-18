@@ -91,7 +91,7 @@ describe("CodexAdapter", () => {
       const config = adapter.buildContainerConfig(baseInput);
       expect(config.env.OPTIO_TASK_ID).toBe("test-123");
       expect(config.env.OPTIO_AGENT_TYPE).toBe("codex");
-      expect(config.env.OPTIO_BRANCH_NAME).toBe("optio/task-test-123");
+      expect(config.env.OPTIO_BRANCH_NAME).toBe("agent/task-test-123");
     });
 
     it("requires correct secrets in api-key mode", () => {

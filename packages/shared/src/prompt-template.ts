@@ -142,7 +142,7 @@ concurrently on this same repository — each on its own branch. You MUST stay i
 {{#if GIT_PLATFORM_CODECOMMIT}}- Do NOT run \`aws codecommit list-pull-requests\` to browse other PRs. You only need to create YOUR PR.
 {{else}}{{#if GIT_PLATFORM_GITLAB}}- Do NOT run \`glab mr list\` to browse merge requests. You only need to create YOUR MR.
 {{else}}- Do NOT run \`gh pr list\` to browse PRs. You only need to create YOUR PR.
-{{/if}}{{/if}}- If you see references to other branches named \`optio/task-*\`, ignore them — those belong to other agents.
+{{/if}}{{/if}}- If you see references to other branches named \`agent/task-*\`, ignore them — those belong to other agents.
 - Your working directory is your worktree. Do not navigate outside it.
 
 ## Guidelines

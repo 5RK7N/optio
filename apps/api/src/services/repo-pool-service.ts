@@ -1,3 +1,5 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
+import { getAnthropicHost, getAnthropicPort, isAnthropicTls } from "../config/anthropic.js";
 import { randomUUID } from "node:crypto";
 import { eq, and, lt, sql, asc } from "drizzle-orm";
 import { db } from "../db/client.js";
@@ -432,9 +434,13 @@ spec:
       const envoyImage = process.env.OPTIO_ENVOY_IMAGE ?? "envoyproxy/envoy:v1.31-latest";
       const pullPolicy = (process.env.OPTIO_IMAGE_PULL_POLICY as string) ?? "IfNotPresent";
 
+      env.ANTHROPIC_BASE_URL = ANTHROPIC_BASE_URL;
       const proxySecrets: SecretProxySecrets = {
         githubToken: env.GITHUB_TOKEN,
         anthropicApiKey: env.ANTHROPIC_API_KEY,
+        anthropicHost: getAnthropicHost(),
+        anthropicPort: getAnthropicPort(),
+        anthropicTls: isAnthropicTls(),
       };
 
       const envoyConfig = generateEnvoyConfig(proxySecrets);
@@ -677,9 +683,13 @@ async function createRepoPodViaStatefulSet(
     if (secretProxy) {
       const envoyImage = process.env.OPTIO_ENVOY_IMAGE ?? "envoyproxy/envoy:v1.31-latest";
       const pullPolicy = (process.env.OPTIO_IMAGE_PULL_POLICY as string) ?? "IfNotPresent";
+      env.ANTHROPIC_BASE_URL = ANTHROPIC_BASE_URL;
       const proxySecrets: SecretProxySecrets = {
         githubToken: env.GITHUB_TOKEN,
         anthropicApiKey: env.ANTHROPIC_API_KEY,
+        anthropicHost: getAnthropicHost(),
+        anthropicPort: getAnthropicPort(),
+        anthropicTls: isAnthropicTls(),
       };
       const envoyConfig = generateEnvoyConfig(proxySecrets);
       const configMapName = `envoy-config-${stsName}`;
@@ -923,41 +933,41 @@ export async function execTaskInRepoPod(
             `  echo "[optio] Worktree reset complete"`,
             `else`,
             `  echo "[optio] No existing worktree found, creating fresh..."`,
-            `  git branch -D optio/task-${taskId} 2>/dev/null || true`,
-            `  if ! git worktree add /workspace/tasks/${taskId} -b optio/task-${taskId} "origin/${env.OPTIO_REPO_BRANCH ?? "main"}" 2>/dev/null; then`,
+            `  git branch -D agent/task-${taskId} 2>/dev/null || true`,
+            `  if ! git worktree add /workspace/tasks/${taskId} -b agent/task-${taskId} "origin/${env.OPTIO_REPO_BRANCH ?? "main"}" 2>/dev/null; then`,
             `    echo "[optio] Cleaning up stale worktree references..."`,
             `    git worktree remove --force /workspace/tasks/${taskId}-wt 2>/dev/null || true`,
-            `    for wt_path in $(git worktree list --porcelain | grep -B1 "branch refs/heads/optio/task-${taskId}$" | grep "^worktree " | cut -d" " -f2-); do`,
+            `    for wt_path in $(git worktree list --porcelain | grep -B1 "branch refs/heads/agent/task-${taskId}$" | grep "^worktree " | cut -d" " -f2-); do`,
             `      git worktree remove --force "$wt_path" 2>/dev/null || true`,
             `    done`,
             `    git worktree prune`,
-            `    git branch -D optio/task-${taskId} 2>/dev/null || true`,
-            `    git worktree add /workspace/tasks/${taskId} -b optio/task-${taskId} "origin/${env.OPTIO_REPO_BRANCH ?? "main"}"`,
+            `    git branch -D agent/task-${taskId} 2>/dev/null || true`,
+            `    git worktree add /workspace/tasks/${taskId} -b agent/task-${taskId} "origin/${env.OPTIO_REPO_BRANCH ?? "main"}"`,
             `  fi`,
             `fi`,
           ]
         : [
             `git worktree remove --force /workspace/tasks/${taskId} 2>/dev/null || true`,
             `rm -rf /workspace/tasks/${taskId}`,
-            `if [ "\${OPTIO_RESTART_FROM_BRANCH:-}" = "true" ] && git rev-parse --verify origin/optio/task-${taskId} >/dev/null 2>&1; then`,
+            `if [ "\${OPTIO_RESTART_FROM_BRANCH:-}" = "true" ] && git rev-parse --verify origin/agent/task-${taskId} >/dev/null 2>&1; then`,
             `  echo "[optio] Force-restart: checking out existing PR branch"`,
-            `  for wt_path in $(git worktree list --porcelain | grep -B1 "branch refs/heads/optio/task-${taskId}$" | grep "^worktree " | cut -d" " -f2-); do`,
+            `  for wt_path in $(git worktree list --porcelain | grep -B1 "branch refs/heads/agent/task-${taskId}$" | grep "^worktree " | cut -d" " -f2-); do`,
             `    git worktree remove --force "$wt_path" 2>/dev/null || true`,
             `  done`,
             `  git worktree prune`,
-            `  git branch -D optio/task-${taskId} 2>/dev/null || true`,
-            `  git worktree add /workspace/tasks/${taskId} -b optio/task-${taskId} origin/optio/task-${taskId}`,
+            `  git branch -D agent/task-${taskId} 2>/dev/null || true`,
+            `  git worktree add /workspace/tasks/${taskId} -b agent/task-${taskId} origin/agent/task-${taskId}`,
             `else`,
-            `  git branch -D optio/task-${taskId} 2>/dev/null || true`,
-            `  if ! git worktree add /workspace/tasks/${taskId} -b optio/task-${taskId} "origin/${env.OPTIO_REPO_BRANCH ?? "main"}" 2>/dev/null; then`,
+            `  git branch -D agent/task-${taskId} 2>/dev/null || true`,
+            `  if ! git worktree add /workspace/tasks/${taskId} -b agent/task-${taskId} "origin/${env.OPTIO_REPO_BRANCH ?? "main"}" 2>/dev/null; then`,
             `    echo "[optio] Cleaning up stale worktree references..."`,
             `    git worktree remove --force /workspace/tasks/${taskId}-wt 2>/dev/null || true`,
-            `    for wt_path in $(git worktree list --porcelain | grep -B1 "branch refs/heads/optio/task-${taskId}$" | grep "^worktree " | cut -d" " -f2-); do`,
+            `    for wt_path in $(git worktree list --porcelain | grep -B1 "branch refs/heads/agent/task-${taskId}$" | grep "^worktree " | cut -d" " -f2-); do`,
             `      git worktree remove --force "$wt_path" 2>/dev/null || true`,
             `    done`,
             `    git worktree prune`,
-            `    git branch -D optio/task-${taskId} 2>/dev/null || true`,
-            `    git worktree add /workspace/tasks/${taskId} -b optio/task-${taskId} "origin/${env.OPTIO_REPO_BRANCH ?? "main"}"`,
+            `    git branch -D agent/task-${taskId} 2>/dev/null || true`,
+            `    git worktree add /workspace/tasks/${taskId} -b agent/task-${taskId} "origin/${env.OPTIO_REPO_BRANCH ?? "main"}"`,
             `  fi`,
             `fi`,
           ];
@@ -1022,8 +1032,8 @@ export async function execTaskInRepoPod(
         `  git config --local credential.helper '/usr/local/bin/optio-git-credential'`,
         `  echo "[optio] Worktree credential helper configured"`,
         `fi`,
-        `git config --local user.name "\${GITHUB_APP_BOT_NAME:-Optio Agent}"`,
-        `git config --local user.email "\${GITHUB_APP_BOT_EMAIL:-optio-agent@noreply.github.com}"`,
+        `git config --local user.name "\${GITHUB_APP_BOT_NAME:-Code Agent}"`,
+        `git config --local user.email "\${GITHUB_APP_BOT_EMAIL:-agent@railigent.host}"`,
         `echo "${runToken}" > /workspace/tasks/${taskId}/.optio-run-token`,
         `export OPTIO_TASK_ID="${taskId}"`,
         `if [ -n "\${OPTIO_SETUP_FILES:-}" ]; then`,

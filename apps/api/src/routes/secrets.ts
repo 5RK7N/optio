@@ -1,3 +1,4 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
@@ -64,7 +65,7 @@ async function validateAuthToken(
     }
 
     if (name === "CLAUDE_CODE_OAUTH_TOKEN") {
-      const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
+      const res = await fetch(`${ANTHROPIC_BASE_URL}/api/oauth/usage`, {
         headers: {
           Authorization: `Bearer ${value}`,
           "anthropic-beta": "oauth-2025-04-20",
@@ -76,7 +77,7 @@ async function validateAuthToken(
     }
 
     if (name === "ANTHROPIC_API_KEY") {
-      const res = await fetch("https://api.anthropic.com/v1/models", {
+      const res = await fetch(`${ANTHROPIC_BASE_URL}/v1/models`, {
         headers: {
           "x-api-key": value,
           "anthropic-version": "2023-06-01",

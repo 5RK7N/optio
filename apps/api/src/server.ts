@@ -60,6 +60,7 @@ import { agentOptionsRoutes } from "./routes/agent-options.js";
 import { activityRoutes } from "./routes/activity.js";
 import githubAppRoutes from "./routes/github-app.js";
 import { githubTokenRoutes } from "./routes/github-token.js";
+import { gitlabTokenRoutes } from "./routes/gitlab-token.js";
 import { hookRoutes } from "./routes/hooks.js";
 import { logStreamWs } from "./ws/log-stream.js";
 import { eventsWs } from "./ws/events.js";
@@ -299,6 +300,7 @@ export async function buildServer() {
   await app.register(activityRoutes);
   await app.register(githubAppRoutes);
   await app.register(githubTokenRoutes);
+  await app.register(gitlabTokenRoutes);
   await app.register(hookRoutes);
 
   // WebSocket routes

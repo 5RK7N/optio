@@ -158,7 +158,7 @@ export async function launchReview(parentTaskId: string): Promise<string> {
     `## PR`,
     `- URL: ${parentTask.prUrl}`,
     `- Number: #${prNumber}`,
-    `- Branch: optio/task-${parentTask.id}`,
+    `- Branch: agent/task-${parentTask.id}`,
   ];
 
   if (prContext.prDescription) {

@@ -135,7 +135,7 @@ export default function SetupPage() {
   const [copilotValidated, setCopilotValidated] = useState(false);
   const [copilotError, setCopilotError] = useState("");
 
-  // Step 3: OpenCode (optional, experimental — reuses Anthropic/OpenAI keys or a custom base URL)
+  // Step 3: OpenCode standard
   const [opencodeMode, setOpencodeMode] = useState<"provider-key" | "custom-endpoint">(
     "provider-key",
   );
@@ -1784,8 +1784,7 @@ export default function SetupPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-text">
-                    OpenCode{" "}
-                    <span className="text-text-muted font-normal">— optional, experimental</span>
+                    OpenCode <span className="text-text-muted font-normal">— optional</span>
                   </span>
                   {opencodeReady && (
                     <span className="text-success text-xs flex items-center gap-1">

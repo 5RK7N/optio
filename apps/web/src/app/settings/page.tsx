@@ -18,6 +18,2173 @@ import {
   Trash2,
   Plus,
   Shield,
+  Ticket,
+  Github,
+  Gitlab,
   KeyRound,
+  ExternalLink,
 } from "lucide-react";
-// ... (I just realized I should use replace again instead of truncating)
+import {
+  OPTIO_TOOL_CATEGORIES,
+  ALL_OPTIO_TOOL_NAMES,
+  ANTHROPIC_CATALOG,
+  resolveModelId,
+  type AgentType,
+} from "@optio/shared";
+import { NotificationPreferences } from "@/components/notifications/notification-preferences";
+import { ReviewAgentPicker } from "@/components/review-agent-picker";
+
+function PromptTemplateEditor() {
+  const [template, setTemplate] = useState("");
+  const [autoMerge, setAutoMerge] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api
+      .getEffectiveTemplate()
+      .then((res) => {
+        setTemplate(res.template);
+        setAutoMerge(res.autoMerge);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.savePromptTemplate({ template, autoMerge });
+      toast.success("Prompt template saved");
+    } catch {
+      toast.error("Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    const res = await api.getBuiltinDefault();
+    setTemplate(res.template);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card text-center text-text-muted text-sm">
+        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Loading...
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-text-muted">
+          Default prompt used for all repos unless overridden in repo settings.
+        </p>
+        <button onClick={handleReset} className="text-xs text-primary hover:underline">
+          Reset to default
+        </button>
+      </div>
+      <div className="p-3 rounded-md bg-bg border border-border">
+        <p className="text-xs text-text-muted mb-2">Available template variables:</p>
+        <ul className="text-xs space-y-1.5">
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{TASK_FILE}}"}</code>
+            <span className="text-text-muted">
+              Path to the task markdown file written into the worktree
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{BRANCH_NAME}}"}</code>
+            <span className="text-text-muted">Git branch name the agent is working on</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{TASK_ID}}"}</code>
+            <span className="text-text-muted">Unique task identifier</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{TASK_TITLE}}"}</code>
+            <span className="text-text-muted">Short title of the task</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{REPO_NAME}}"}</code>
+            <span className="text-text-muted">Repository name (e.g. owner/repo)</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{AUTO_MERGE}}"}</code>
+            <span className="text-text-muted">
+              Whether auto-merge is enabled — use with{" "}
+              <code className="text-primary">{"{{#if AUTO_MERGE}}...{{/if}}"}</code>
+            </span>
+          </li>
+        </ul>
+      </div>
+      <textarea
+        value={template}
+        onChange={(e) => setTemplate(e.target.value)}
+        rows={12}
+        className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-y leading-relaxed"
+      />
+      <div className="flex items-center justify-between">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={autoMerge}
+            onChange={(e) => setAutoMerge(e.target.checked)}
+            className="w-4 h-4 rounded"
+          />
+          Auto-merge PRs
+        </label>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-4 py-1.5 rounded-md bg-primary text-white text-xs hover:bg-primary-hover disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DefaultReviewEditor() {
+  const [reviewPrompt, setReviewPrompt] = useState("");
+  // Workspace-level review defaults — saved via PUT /api/optio/settings.
+  const [reviewAgentType, setReviewAgentType] = useState<AgentType>("claude-code");
+  const [reviewModel, setReviewModel] = useState("");
+  const [reviewTrigger, setReviewTrigger] = useState("on_ci_pass");
+  const [reviewContextWindow, setReviewContextWindow] = useState("200k");
+  const [reviewEffort, setReviewEffort] = useState("medium");
+  const [reviewThinking, setReviewThinking] = useState(true);
+  const [reviewTestCommand, setReviewTestCommand] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      api.getReviewDefault().catch(() => null),
+      api.getOptioSettings().catch(() => null),
+    ])
+      .then(([promptRes, settingsRes]) => {
+        if (promptRes?.template) {
+          setReviewPrompt(promptRes.template);
+        } else {
+          import("@optio/shared")
+            .then((m) => setReviewPrompt(m.DEFAULT_REVIEW_PROMPT_TEMPLATE))
+            .catch(() => {});
+        }
+        const s = settingsRes?.settings;
+        if (s) {
+          if (s.defaultReviewAgentType) setReviewAgentType(s.defaultReviewAgentType as AgentType);
+          if (s.defaultReviewModel) setReviewModel(s.defaultReviewModel);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card text-center text-text-muted text-sm">
+        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Loading...
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-3">
+      <p className="text-xs text-text-muted">
+        Default review settings applied to all repos unless overridden in repo settings.
+      </p>
+
+      <div>
+        <label className="block text-xs text-text-muted mb-1">Default Trigger</label>
+        <select
+          value={reviewTrigger}
+          onChange={(e) => setReviewTrigger(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+        >
+          <option value="on_ci_pass">After CI passes</option>
+          <option value="on_pr">Immediately on PR open</option>
+          <option value="manual">Manual only</option>
+        </select>
+      </div>
+
+      <ReviewAgentPicker
+        agentType={reviewAgentType}
+        onAgentTypeChange={(next) => setReviewAgentType(next ?? "claude-code")}
+        model={reviewModel}
+        onModelChange={setReviewModel}
+        allowInherit={false}
+      />
+
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="block text-xs text-text-muted mb-1">Context Window</label>
+          <select
+            value={reviewContextWindow}
+            onChange={(e) => setReviewContextWindow(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+          >
+            <option value="200k">200K tokens</option>
+            <option value="1m">1M tokens</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-text-muted mb-1">Effort Level</label>
+          <select
+            value={reviewEffort}
+            onChange={(e) => setReviewEffort(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div className="flex items-end pb-1">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={reviewThinking}
+              onChange={(e) => setReviewThinking(e.target.checked)}
+              className="w-4 h-4 rounded"
+            />
+            <span className="text-sm">Thinking</span>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs text-text-muted mb-1">Default Test Command</label>
+        <p className="text-[10px] text-text-muted/60 mb-1.5">
+          Command to run tests locally. Leave empty if GitHub Actions handles testing — the reviewer
+          will check CI status instead.
+        </p>
+        <input
+          value={reviewTestCommand}
+          onChange={(e) => setReviewTestCommand(e.target.value)}
+          placeholder="npm test, cargo test, pytest"
+          className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+        />
+      </div>
+
+      <div className="p-3 rounded-md bg-bg border border-border">
+        <p className="text-xs text-text-muted mb-2">Available template variables:</p>
+        <ul className="text-xs space-y-1.5">
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{PR_NUMBER}}"}</code>
+            <span className="text-text-muted">Pull request number</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{TASK_FILE}}"}</code>
+            <span className="text-text-muted">Path to the review context file</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{REPO_NAME}}"}</code>
+            <span className="text-text-muted">Repository name (e.g. owner/repo)</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{TASK_TITLE}}"}</code>
+            <span className="text-text-muted">Original task title</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <code className="text-primary shrink-0">{"{{TEST_COMMAND}}"}</code>
+            <span className="text-text-muted">Test command from repo settings</span>
+          </li>
+        </ul>
+      </div>
+
+      <textarea
+        value={reviewPrompt}
+        onChange={(e) => setReviewPrompt(e.target.value)}
+        rows={10}
+        className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-y leading-relaxed"
+      />
+
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() =>
+            import("@optio/shared").then((m) => setReviewPrompt(m.DEFAULT_REVIEW_PROMPT_TEMPLATE))
+          }
+          className="text-xs text-primary hover:underline"
+        >
+          Reset to default
+        </button>
+        <button
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await api.saveReviewDefault(reviewPrompt);
+              await api.updateOptioSettings({
+                defaultReviewAgentType: reviewAgentType,
+                defaultReviewModel: reviewModel || null,
+              });
+              toast.success("Review defaults saved");
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed to save");
+            } finally {
+              setSaving(false);
+            }
+          }}
+          disabled={saving}
+          className="px-4 py-1.5 rounded-md bg-primary text-white text-xs hover:bg-primary-hover disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GlobalMcpServers() {
+  const [servers, setServers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState("");
+  const [command, setCommand] = useState("");
+  const [args, setArgs] = useState("");
+  const [env, setEnv] = useState("");
+  const [installCmd, setInstallCmd] = useState("");
+
+  useEffect(() => {
+    api
+      .listMcpServers("global")
+      .then((res) => setServers(res.servers))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card text-center text-text-muted text-sm">
+        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Loading...
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-text-muted">
+          Global MCP servers are available to all repos. Use{" "}
+          <code className="text-primary">{"${{SECRET_NAME}}"}</code> to reference Optio secrets.
+        </p>
+        <button
+          onClick={() => setShowAdd(!showAdd)}
+          className="flex items-center gap-1 text-xs text-primary hover:underline"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add
+        </button>
+      </div>
+
+      {servers.length > 0 && (
+        <div className="space-y-2">
+          {servers.map((server: any) => (
+            <div
+              key={server.id}
+              className="flex items-center gap-3 p-3 rounded-lg border border-border bg-bg"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{server.name}</span>
+                  {!server.enabled && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning">
+                      disabled
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-text-muted mt-0.5 font-mono truncate">
+                  {server.command} {(server.args ?? []).join(" ")}
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  await api.updateMcpServer(server.id, { enabled: !server.enabled });
+                  setServers((prev) =>
+                    prev.map((s) => (s.id === server.id ? { ...s, enabled: !s.enabled } : s)),
+                  );
+                }}
+                className="text-xs text-text-muted hover:text-text"
+              >
+                {server.enabled ? "Disable" : "Enable"}
+              </button>
+              <button
+                onClick={async () => {
+                  await api.deleteMcpServer(server.id);
+                  setServers((prev) => prev.filter((s) => s.id !== server.id));
+                  toast.success("MCP server removed");
+                }}
+                className="text-text-muted hover:text-error"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {servers.length === 0 && !showAdd && (
+        <p className="text-xs text-text-muted/60 text-center py-2">
+          No global MCP servers configured.
+        </p>
+      )}
+
+      {showAdd && (
+        <div className="space-y-3 p-3 rounded-lg border border-primary/30 bg-primary/5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-text-muted mb-1">Name</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="postgres"
+                className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-text-muted mb-1">Command</label>
+              <input
+                value={command}
+                onChange={(e) => setCommand(e.target.value)}
+                placeholder="npx"
+                className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Args (one per line)</label>
+            <textarea
+              value={args}
+              onChange={(e) => setArgs(e.target.value)}
+              rows={2}
+              placeholder={"-y\n@modelcontextprotocol/server-postgres"}
+              className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-y"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1">
+              Env vars (KEY=VALUE, one per line)
+            </label>
+            <textarea
+              value={env}
+              onChange={(e) => setEnv(e.target.value)}
+              rows={2}
+              placeholder={"POSTGRES_URL=${{POSTGRES_URL}}"}
+              className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-y"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Install command (optional)</label>
+            <input
+              value={installCmd}
+              onChange={(e) => setInstallCmd(e.target.value)}
+              placeholder="npm install -g @modelcontextprotocol/server-postgres"
+              className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => {
+                setShowAdd(false);
+                setName("");
+                setCommand("");
+                setArgs("");
+                setEnv("");
+                setInstallCmd("");
+              }}
+              className="px-3 py-1.5 rounded-md text-xs text-text-muted hover:bg-bg-hover"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (!name || !command) {
+                  toast.error("Name and command are required");
+                  return;
+                }
+                const parsedArgs = args
+                  .split("\n")
+                  .map((a) => a.trim())
+                  .filter(Boolean);
+                const parsedEnv: Record<string, string> = {};
+                for (const line of env.split("\n")) {
+                  const idx = line.indexOf("=");
+                  if (idx > 0) parsedEnv[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+                }
+                const res = await api.createMcpServer({
+                  name,
+                  command,
+                  args: parsedArgs.length > 0 ? parsedArgs : undefined,
+                  env: Object.keys(parsedEnv).length > 0 ? parsedEnv : undefined,
+                  installCommand: installCmd || undefined,
+                });
+                setServers((prev) => [...prev, res.server]);
+                setShowAdd(false);
+                setName("");
+                setCommand("");
+                setArgs("");
+                setEnv("");
+                setInstallCmd("");
+                toast.success("MCP server added");
+              }}
+              className="px-3 py-1.5 rounded-md bg-primary text-white text-xs font-medium hover:bg-primary-hover"
+            >
+              Add Server
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GitLabTokenManager() {
+  const [status, setStatus] = useState<"valid" | "expired" | "missing" | "error" | null>(null);
+  const [host, setHost] = useState<string>("gitlab.com");
+  const [user, setUser] = useState<{ login: string; name: string } | undefined>();
+  const [message, setMessage] = useState<string | undefined>();
+  const [loading, setLoading] = useState(true);
+  const [newToken, setNewToken] = useState("");
+  const [newHost, setNewHost] = useState("gitlab.com");
+  const [rotating, setRotating] = useState(false);
+  const [showRotateForm, setShowRotateForm] = useState(false);
+
+  const checkStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await api.getGitlabTokenStatus();
+      setStatus(res.status);
+      setHost(res.host || "gitlab.com");
+      setNewHost(res.host || "gitlab.com");
+      setUser(res.user);
+      setMessage(res.message ?? res.error);
+    } catch {
+      setStatus("error");
+      setMessage("Failed to check token status");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
+
+  const handleRotate = async () => {
+    if (!newToken.trim()) return;
+    setRotating(true);
+    try {
+      const res = await api.rotateGitlabToken(newToken.trim(), newHost.trim() || undefined);
+      if (res.success) {
+        toast.success(res.message ?? "GitLab token replaced successfully");
+        setNewToken("");
+        setShowRotateForm(false);
+        checkStatus();
+      } else {
+        toast.error(res.error ?? "Token validation failed");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to replace token");
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card text-center text-text-muted text-sm">
+        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Checking token status...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Current Status Card */}
+      <div className="flex items-start justify-between p-4 rounded-xl border border-border/50 bg-bg-card">
+        <div className="flex items-start gap-3">
+          <div
+            className={`mt-1 flex items-center justify-center w-8 h-8 rounded-full ${
+              status === "valid" ? "bg-success/10 text-success" : "bg-error/10 text-error"
+            }`}
+          >
+            {status === "valid" ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : status === "missing" ? (
+              <KeyRound className="w-4 h-4" />
+            ) : (
+              <XCircle className="w-4 h-4" />
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-text">
+              {status === "valid"
+                ? "GitLab token is valid"
+                : status === "expired"
+                  ? "GitLab token has expired"
+                  : status === "missing"
+                    ? "No token configured"
+                    : "Unable to verify token"}
+            </p>
+            {user && (
+              <p className="text-xs text-text-muted">
+                Authenticated as <span className="font-medium text-text">{user.login}</span>
+                {user.name && ` (${user.name})`}
+              </p>
+            )}
+            <p className="text-xs text-text-muted mt-0.5">
+              Host: <span className="font-medium text-text">{host}</span>
+            </p>
+            {message && !user && <p className="text-xs text-text-muted mt-0.5">{message}</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={checkStatus}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-text-muted hover:bg-bg-hover transition-colors"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowRotateForm(!showRotateForm)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors"
+          >
+            <KeyRound className="w-3 h-3" />
+            {status === "missing" ? "Add Token" : "Replace Token"}
+          </button>
+        </div>
+      </div>
+
+      {/* Warnings */}
+      {status !== "valid" && (
+        <div
+          className={`flex items-start gap-2 p-3 rounded-lg text-xs ${
+            status === "expired"
+              ? "bg-warning/10 border border-warning/20 text-warning"
+              : "bg-error/10 border border-error/20 text-error"
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">
+              {status === "expired"
+                ? "Your GitLab token has expired or been revoked"
+                : "No GitLab token is configured"}
+            </p>
+            <p className="mt-0.5 opacity-70">
+              PR watching, issue sync, and repo detection require a valid GitLab token. Replace it
+              below to restore these features.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Rotation form */}
+      {showRotateForm && (
+        <div className="space-y-4 p-4 rounded-lg border border-primary/30 bg-primary/5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-text-muted">
+              Configure your GitLab Personal Access Token. The token will be validated before saving.
+            </p>
+            <a
+              href={`https://${newHost || "gitlab.com"}/-/user_settings/personal_access_tokens?name=Optio+Agent&scopes=api,read_user,read_repository,write_repository`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+            >
+              Generate Token <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-text-muted mb-1">
+                GitLab Host <span className="font-normal opacity-70">(leave default for gitlab.com)</span>
+              </label>
+              <input
+                type="text"
+                value={newHost}
+                onChange={(e) => setNewHost(e.target.value)}
+                placeholder="gitlab.com"
+                className="w-full px-3 py-1.5 rounded-md bg-bg border border-border text-sm focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-text-muted mb-1">Token</label>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={newToken}
+                  onChange={(e) => setNewToken(e.target.value)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const pasted = e.clipboardData.getData("text").trim();
+                    if (pasted) {
+                      setNewToken(pasted);
+                    }
+                  }}
+                  placeholder="glpat-..."
+                  className="flex-1 px-3 py-1.5 rounded-md bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                />
+                <button
+                  onClick={handleRotate}
+                  disabled={rotating || !newToken.trim()}
+                  className="px-4 py-1.5 rounded-md bg-primary text-white text-xs font-medium hover:bg-primary-hover disabled:opacity-50 min-w-[80px]"
+                >
+                  {rotating ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : "Save Token"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SKILL_AGENT_TYPES = [
+  { value: "claude-code", label: "Claude Code" },
+  { value: "codex", label: "OpenAI Codex" },
+  { value: "copilot", label: "GitHub Copilot" },
+  { value: "gemini", label: "Google Gemini" },
+  { value: "opencode", label: "OpenCode" },
+];
+
+type SkillExtraFile = { relativePath: string; content: string };
+
+function GlobalSkills() {
+  const [skills, setSkills] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [layout, setLayout] = useState<"commands" | "skill-dir">("commands");
+  const [files, setFiles] = useState<SkillExtraFile[]>([]);
+  const [agentTypes, setAgentTypes] = useState<string[]>([]);
+
+  const resetForm = () => {
+    setShowAdd(false);
+    setName("");
+    setDescription("");
+    setPrompt("");
+    setLayout("commands");
+    setFiles([]);
+    setAgentTypes([]);
+  };
+
+  const toggleAgent = (value: string) => {
+    setAgentTypes((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
+  };
+
+  useEffect(() => {
+    api
+      .listSkills("global")
+      .then((res) => setSkills(res.skills))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card text-center text-text-muted text-sm">
+        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Loading...
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-text-muted">
+          Global skills are available to agents in all repos. Written to{" "}
+          <code className="text-primary">.claude/commands/</code> or{" "}
+          <code className="text-primary">.claude/skills/&lt;name&gt;/</code> before the agent
+          starts. Optionally scope by agent type.
+        </p>
+        <button
+          onClick={() => setShowAdd(!showAdd)}
+          className="flex items-center gap-1 text-xs text-primary hover:underline"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add
+        </button>
+      </div>
+
+      {skills.length > 0 && (
+        <div className="space-y-2">
+          {skills.map((skill: any) => (
+            <div
+              key={skill.id}
+              className="flex items-center gap-3 p-3 rounded-lg border border-border bg-bg"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium">/{skill.name}</span>
+                  {skill.layout === "skill-dir" && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                      skill-dir
+                      {Array.isArray(skill.files) && skill.files.length > 0
+                        ? ` +${skill.files.length}`
+                        : ""}
+                    </span>
+                  )}
+                  {Array.isArray(skill.agentTypes) && skill.agentTypes.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-bg-hover text-text-muted">
+                      {skill.agentTypes.join(", ")}
+                    </span>
+                  )}
+                  {!skill.enabled && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning">
+                      disabled
+                    </span>
+                  )}
+                </div>
+                {skill.description && (
+                  <p className="text-xs text-text-muted mt-0.5 truncate">{skill.description}</p>
+                )}
+              </div>
+              <button
+                onClick={async () => {
+                  await api.updateSkill(skill.id, { enabled: !skill.enabled });
+                  setSkills((prev) =>
+                    prev.map((s) => (s.id === skill.id ? { ...s, enabled: !s.enabled } : s)),
+                  );
+                }}
+                className="text-xs text-text-muted hover:text-text"
+              >
+                {skill.enabled ? "Disable" : "Enable"}
+              </button>
+              <button
+                onClick={async () => {
+                  await api.deleteSkill(skill.id);
+                  setSkills((prev) => prev.filter((s) => s.id !== skill.id));
+                  toast.success("Skill removed");
+                }}
+                className="text-text-muted hover:text-error"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {skills.length === 0 && !showAdd && (
+        <p className="text-xs text-text-muted/60 text-center py-2">No global skills configured.</p>
+      )}
+
+      {showAdd && (
+        <div className="space-y-3 p-3 rounded-lg border border-primary/30 bg-primary/5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-text-muted mb-1">Name</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="run-tests"
+                className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-text-muted mb-1">Description</label>
+              <input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Run the full test suite"
+                className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1">
+              {layout === "skill-dir" ? "SKILL.md body" : "Prompt (markdown)"}
+            </label>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              rows={6}
+              placeholder={
+                layout === "skill-dir"
+                  ? "Body of SKILL.md. YAML frontmatter is fine if Claude expects it."
+                  : "Run the full test suite and analyze any failures..."
+              }
+              className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-y"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-text-muted mb-1">Layout</label>
+              <select
+                value={layout}
+                onChange={(e) => setLayout(e.target.value as "commands" | "skill-dir")}
+                className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              >
+                <option value="commands">commands (.claude/commands/&lt;name&gt;.md)</option>
+                <option value="skill-dir">skill-dir (.claude/skills/&lt;name&gt;/...)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-text-muted mb-1">Agent types</label>
+              <div className="flex flex-wrap gap-1.5">
+                {SKILL_AGENT_TYPES.map((a) => {
+                  const active = agentTypes.includes(a.value);
+                  return (
+                    <button
+                      key={a.value}
+                      type="button"
+                      onClick={() => toggleAgent(a.value)}
+                      className={`px-2 py-1 rounded-md text-[11px] border ${
+                        active
+                          ? "bg-primary/10 border-primary text-primary"
+                          : "bg-bg border-border text-text-muted hover:border-primary/40"
+                      }`}
+                    >
+                      {a.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-text-muted/70 mt-1">
+                {agentTypes.length === 0
+                  ? "No selection — applies to all agents."
+                  : `Applies only to: ${agentTypes.join(", ")}`}
+              </p>
+            </div>
+          </div>
+
+          {layout === "skill-dir" && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-text-muted">
+                  Additional files (under{" "}
+                  <code className="text-primary">.claude/skills/{name || "&lt;name&gt;"}/</code>)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setFiles((prev) => [...prev, { relativePath: "", content: "" }])}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add file
+                </button>
+              </div>
+              {files.map((f, i) => (
+                <div key={i} className="space-y-1.5 p-2 rounded-md border border-border/60 bg-bg">
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={f.relativePath}
+                      onChange={(e) =>
+                        setFiles((prev) =>
+                          prev.map((x, idx) =>
+                            idx === i ? { ...x, relativePath: e.target.value } : x,
+                          ),
+                        )
+                      }
+                      placeholder="reference.md or scripts/lint.sh"
+                      className="flex-1 px-2 py-1 rounded bg-bg-card border border-border text-xs font-mono focus:outline-none focus:border-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="text-text-muted hover:text-error"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <textarea
+                    value={f.content}
+                    onChange={(e) =>
+                      setFiles((prev) =>
+                        prev.map((x, idx) => (idx === i ? { ...x, content: e.target.value } : x)),
+                      )
+                    }
+                    rows={3}
+                    placeholder="File contents"
+                    className="w-full px-2 py-1 rounded bg-bg-card border border-border text-xs font-mono focus:outline-none focus:border-primary resize-y"
+                  />
+                </div>
+              ))}
+              {files.length === 0 && (
+                <p className="text-[11px] text-text-muted/60">
+                  None. SKILL.md is enough for most skills — add files only when you need scripts or
+                  supporting docs.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={resetForm}
+              className="px-3 py-1.5 rounded-md text-xs text-text-muted hover:bg-bg-hover"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (!name || !prompt) {
+                  toast.error("Name and prompt are required");
+                  return;
+                }
+                const cleanedFiles =
+                  layout === "skill-dir"
+                    ? files
+                        .map((f) => ({
+                          relativePath: f.relativePath.trim(),
+                          content: f.content,
+                        }))
+                        .filter((f) => f.relativePath.length > 0)
+                    : undefined;
+                const res = await api.createSkill({
+                  name,
+                  description: description || undefined,
+                  prompt,
+                  layout,
+                  files: cleanedFiles,
+                  agentTypes: agentTypes.length > 0 ? agentTypes : undefined,
+                });
+                setSkills((prev) => [...prev, res.skill]);
+                resetForm();
+                toast.success("Skill added");
+              }}
+              className="px-3 py-1.5 rounded-md bg-primary text-white text-xs font-medium hover:bg-primary-hover"
+            >
+              Add Skill
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MarketplaceSkills() {
+  const [skills, setSkills] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [ref, setRef] = useState("main");
+  const [subpath, setSubpath] = useState("");
+  const [agentTypes, setAgentTypes] = useState<string[]>(["claude-code"]);
+
+  const refresh = () => {
+    api
+      .listInstalledSkills()
+      .then((res) => setSkills(res.skills))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    refresh();
+    setLoading(false);
+  }, []);
+
+  const resetForm = () => {
+    setShowAdd(false);
+    setName("");
+    setSourceUrl("");
+    setRef("main");
+    setSubpath("");
+    setAgentTypes(["claude-code"]);
+  };
+
+  const toggleAgent = (value: string) => {
+    setAgentTypes((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
+  };
+
+  // Auto-derive a name from the source URL when the user hasn't typed one yet.
+  const deriveName = (url: string): string => {
+    const m = url.match(/([^/]+?)(?:\.git)?\/?$/);
+    if (!m) return "";
+    return m[1]
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, "-")
+      .slice(0, 64);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card text-center text-text-muted text-sm">
+        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Loading...
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-text-muted">
+          Install a skill from any public git URL (e.g. an Anthropic marketplace skill repo). Files
+          are fetched into a shared cache and materialized into{" "}
+          <code className="text-primary">.claude/skills/&lt;name&gt;/</code> at task spawn. Claude
+          Code only.
+        </p>
+        <button
+          onClick={() => setShowAdd(!showAdd)}
+          className="flex items-center gap-1 text-xs text-primary hover:underline"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Install
+        </button>
+      </div>
+
+      {skills.length > 0 && (
+        <div className="space-y-2">
+          {skills.map((skill: any) => (
+            <div
+              key={skill.id}
+              className="flex items-center gap-3 p-3 rounded-lg border border-border bg-bg"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium">{skill.name}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                    {skill.ref}
+                    {skill.resolvedSha ? ` @${skill.resolvedSha.slice(0, 7)}` : ""}
+                  </span>
+                  {skill.hasExecutableFiles && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning"
+                      title="This skill ships executable scripts. Review the source before enabling."
+                    >
+                      <AlertTriangle className="w-3 h-3 inline" /> scripts
+                    </span>
+                  )}
+                  {Array.isArray(skill.agentTypes) && skill.agentTypes.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-bg-hover text-text-muted">
+                      {skill.agentTypes.join(", ")}
+                    </span>
+                  )}
+                  {!skill.enabled && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning">
+                      disabled
+                    </span>
+                  )}
+                  {skill.lastSyncError && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded bg-error/10 text-error truncate max-w-[200px]"
+                      title={skill.lastSyncError}
+                    >
+                      sync failed
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-text-muted mt-0.5 truncate">
+                  {skill.sourceUrl}
+                  {skill.subpath !== "." && (
+                    <span className="text-text-muted/70"> · {skill.subpath}</span>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    await api.syncInstalledSkill(skill.id);
+                    toast.success("Sync queued");
+                    setTimeout(refresh, 1500);
+                  } catch {
+                    toast.error("Sync failed to queue");
+                  }
+                }}
+                className="text-xs text-text-muted hover:text-text"
+                title="Force re-sync"
+              >
+                Sync
+              </button>
+              <button
+                onClick={async () => {
+                  await api.updateInstalledSkill(skill.id, { enabled: !skill.enabled });
+                  setSkills((prev) =>
+                    prev.map((s) => (s.id === skill.id ? { ...s, enabled: !s.enabled } : s)),
+                  );
+                }}
+                className="text-xs text-text-muted hover:text-text"
+              >
+                {skill.enabled ? "Disable" : "Enable"}
+              </button>
+              <button
+                onClick={async () => {
+                  await api.deleteInstalledSkill(skill.id);
+                  setSkills((prev) => prev.filter((s) => s.id !== skill.id));
+                  toast.success("Skill removed");
+                }}
+                className="text-text-muted hover:text-error"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {skills.length === 0 && !showAdd && (
+        <p className="text-xs text-text-muted/60 text-center py-2">
+          No marketplace skills installed.
+        </p>
+      )}
+
+      {showAdd && (
+        <div className="space-y-3 p-3 rounded-lg border border-primary/30 bg-primary/5">
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Source URL (git)</label>
+            <input
+              value={sourceUrl}
+              onChange={(e) => {
+                setSourceUrl(e.target.value);
+                if (!name) setName(deriveName(e.target.value));
+              }}
+              placeholder="https://github.com/anthropics/skills.git"
+              className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-text-muted mb-1">Name</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="superpowers"
+                className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-text-muted mb-1">Ref</label>
+              <input
+                value={ref}
+                onChange={(e) => setRef(e.target.value)}
+                placeholder="main"
+                className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-text-muted mb-1">Subpath (optional)</label>
+              <input
+                value={subpath}
+                onChange={(e) => setSubpath(e.target.value)}
+                placeholder="."
+                className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Agent types</label>
+            <div className="flex flex-wrap gap-1.5">
+              {SKILL_AGENT_TYPES.map((a) => {
+                const active = agentTypes.includes(a.value);
+                return (
+                  <button
+                    key={a.value}
+                    type="button"
+                    onClick={() => toggleAgent(a.value)}
+                    className={`px-2 py-1 rounded-md text-[11px] border ${
+                      active
+                        ? "bg-primary/10 border-primary text-primary"
+                        : "bg-bg border-border text-text-muted hover:border-primary/40"
+                    }`}
+                  >
+                    {a.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-text-muted/70 mt-1">
+              Marketplace skills only inject for Claude Code today; other selections are recorded
+              for future agents.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={resetForm}
+              className="px-3 py-1.5 rounded-md text-xs text-text-muted hover:bg-bg-hover"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (!name || !sourceUrl) {
+                  toast.error("Name and source URL are required");
+                  return;
+                }
+                try {
+                  const res = await api.createInstalledSkill({
+                    name,
+                    sourceUrl,
+                    ref: ref || undefined,
+                    subpath: subpath || undefined,
+                    agentTypes: agentTypes.length > 0 ? agentTypes : undefined,
+                  });
+                  setSkills((prev) => [...prev, res.skill]);
+                  resetForm();
+                  toast.success("Skill installed; syncing in background");
+                  setTimeout(refresh, 2500);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Could not install skill");
+                }
+              }}
+              className="px-3 py-1.5 rounded-md bg-primary text-white text-xs font-medium hover:bg-primary-hover"
+            >
+              Install
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AuthenticationSettings() {
+  const [providers, setProviders] = useState<Array<{ name: string; displayName: string }>>([]);
+  const [authDisabled, setAuthDisabled] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .getAuthProviders()
+      .then((res) => {
+        setProviders(res.providers);
+        setAuthDisabled(res.authDisabled);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card text-center text-text-muted text-sm">
+        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Loading...
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-4">
+      {authDisabled && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+          <Shield className="w-4 h-4 shrink-0" />
+          <div>
+            <p className="font-medium">Authentication is disabled</p>
+            <p className="text-amber-400/70 mt-0.5">
+              Set{" "}
+              <code className="px-1 py-0.5 bg-amber-500/10 rounded">OPTIO_AUTH_DISABLED=false</code>{" "}
+              and configure OAuth providers to enable authentication.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <p className="text-xs text-text-muted mb-3">
+          OAuth providers are auto-detected from environment variables. Configure the client ID and
+          secret for each provider you want to enable.
+        </p>
+
+        <div className="space-y-2">
+          {(["github", "google", "gitlab", "oidc"] as const).map((name) => {
+            const enabled = providers.some((p) => p.name === name);
+            const provider = providers.find((p) => p.name === name);
+            const displayName =
+              provider?.displayName ||
+              (name === "github"
+                ? "GitHub"
+                : name === "google"
+                  ? "Google"
+                  : name === "gitlab"
+                    ? "GitLab"
+                    : "OIDC");
+            const envPrefix = name.toUpperCase();
+            return (
+              <div
+                key={name}
+                className="flex items-center justify-between p-3 rounded-lg border border-border"
+              >
+                <div className="flex items-center gap-3">
+                  {enabled ? (
+                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-text-muted/40 shrink-0" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium">{displayName}</p>
+                    <p className="text-[10px] text-text-muted">
+                      {name === "oidc"
+                        ? "OIDC_ISSUER_URL / OIDC_CLIENT_ID / OIDC_CLIENT_SECRET / OIDC_DISPLAY_NAME / OIDC_SCOPES"
+                        : `${envPrefix}_OAUTH_CLIENT_ID / ${envPrefix}_OAUTH_CLIENT_SECRET`}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full ${
+                    enabled ? "bg-success/10 text-success" : "bg-text-muted/10 text-text-muted"
+                  }`}
+                >
+                  {enabled ? "Configured" : "Not configured"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OptioAgentSettings() {
+  const [model, setModel] = useState("sonnet");
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [enabledTools, setEnabledTools] = useState<string[]>([...ALL_OPTIO_TOOL_NAMES]);
+  const [confirmWrites, setConfirmWrites] = useState(true);
+  const [maxTurns, setMaxTurns] = useState(20);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showBasePrompt, setShowBasePrompt] = useState(false);
+
+  useEffect(() => {
+    api
+      .getOptioSettings()
+      .then((res) => {
+        const s = res.settings;
+        setModel(s.model);
+        setSystemPrompt(s.systemPrompt);
+        // Empty array means "all enabled" (default state)
+        setEnabledTools(
+          s.enabledTools && s.enabledTools.length > 0 ? s.enabledTools : [...ALL_OPTIO_TOOL_NAMES],
+        );
+        setConfirmWrites(s.confirmWrites);
+        setMaxTurns(s.maxTurns);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    if (enabledTools.length === 0) {
+      toast.error("At least one tool must be enabled");
+      return;
+    }
+    setSaving(true);
+    try {
+      // If all tools are enabled, store empty array (meaning "all")
+      const toolsToSave = enabledTools.length === ALL_OPTIO_TOOL_NAMES.length ? [] : enabledTools;
+      await api.updateOptioSettings({
+        model,
+        systemPrompt,
+        enabledTools: toolsToSave.length === 0 ? ALL_OPTIO_TOOL_NAMES : toolsToSave,
+        confirmWrites,
+        maxTurns,
+      });
+      toast.success("Optio agent settings saved");
+    } catch (err) {
+      toast.error("Failed to save settings", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleTool = (toolName: string) => {
+    setEnabledTools((prev) =>
+      prev.includes(toolName) ? prev.filter((t) => t !== toolName) : [...prev, toolName],
+    );
+  };
+
+  const enableAll = () => setEnabledTools([...ALL_OPTIO_TOOL_NAMES]);
+  const disableAll = () => setEnabledTools([]);
+
+  if (loading) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card text-center text-text-muted text-sm">
+        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Loading...
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-5">
+      {/* Model Selection */}
+      <div>
+        <label className="block text-xs font-medium text-text-muted mb-1">Model</label>
+        <select
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+        >
+          {Object.keys(ANTHROPIC_CATALOG.aliases).map((alias) => {
+            const id = resolveModelId("anthropic", alias);
+            const label = ANTHROPIC_CATALOG.models.find((m) => m.id === id)?.label ?? alias;
+            return (
+              <option key={alias} value={alias}>
+                {label}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+
+      {/* System Prompt */}
+      <div>
+        <label className="block text-xs font-medium text-text-muted mb-1">
+          Custom System Prompt
+        </label>
+        <p className="text-xs text-text-muted mb-2">
+          These instructions are appended to Optio&apos;s base prompt. Use this to add context about
+          your team&apos;s workflows, naming conventions, or preferences.
+        </p>
+        <button
+          onClick={() => setShowBasePrompt(!showBasePrompt)}
+          className="flex items-center gap-1 text-xs text-primary hover:underline mb-2"
+        >
+          {showBasePrompt ? (
+            <ChevronDown className="w-3 h-3" />
+          ) : (
+            <ChevronRight className="w-3 h-3" />
+          )}
+          {showBasePrompt ? "Hide" : "Show"} base system prompt
+        </button>
+        {showBasePrompt && (
+          <div className="p-3 rounded-md bg-bg border border-border mb-2 max-h-48 overflow-y-auto">
+            <p className="text-xs text-text-muted font-mono whitespace-pre-wrap">
+              The base system prompt is defined in code and includes instructions for task
+              execution, PR creation, and tool usage. Your custom prompt below is appended after the
+              base prompt to provide additional context.
+            </p>
+          </div>
+        )}
+        <textarea
+          value={systemPrompt}
+          onChange={(e) => setSystemPrompt(e.target.value)}
+          rows={6}
+          placeholder="e.g., Always use conventional commits. Follow our coding style guide at docs/STYLE.md..."
+          className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-y leading-relaxed"
+        />
+      </div>
+
+      {/* Tool Enablement */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-xs font-medium text-text-muted">Enabled Tools</label>
+          <div className="flex gap-2">
+            <button onClick={enableAll} className="text-xs text-primary hover:underline">
+              Enable all
+            </button>
+            <span className="text-xs text-text-muted">|</span>
+            <button onClick={disableAll} className="text-xs text-primary hover:underline">
+              Disable all
+            </button>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {OPTIO_TOOL_CATEGORIES.map((category) => (
+            <div key={category.name} className="p-3 rounded-md bg-bg border border-border">
+              <h4 className="text-xs font-medium mb-2">{category.name}</h4>
+              <div className="space-y-1.5">
+                {category.tools.map((tool) => (
+                  <label key={tool.name} className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enabledTools.includes(tool.name)}
+                      onChange={() => toggleTool(tool.name)}
+                      className="w-3.5 h-3.5 rounded"
+                    />
+                    <span className="font-medium">{tool.name}</span>
+                    <span className="text-text-muted">— {tool.description}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        {enabledTools.length === 0 && (
+          <p className="text-xs text-error mt-1 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" />
+            At least one tool must be enabled
+          </p>
+        )}
+      </div>
+
+      {/* Confirmation Behavior */}
+      <div>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={confirmWrites}
+            onChange={(e) => setConfirmWrites(e.target.checked)}
+            className="w-4 h-4 rounded"
+          />
+          Require confirmation for write operations
+        </label>
+        {!confirmWrites && (
+          <p className="text-xs text-warning mt-1 flex items-center gap-1 ml-6">
+            <AlertTriangle className="w-3 h-3" />
+            Optio will execute actions immediately without asking for approval
+          </p>
+        )}
+      </div>
+
+      {/* Max Conversation Length */}
+      <div>
+        <label className="block text-xs font-medium text-text-muted mb-1">
+          Max Conversation Turns
+        </label>
+        <p className="text-xs text-text-muted mb-2">
+          Maximum back-and-forth exchanges per session (5–50).
+        </p>
+        <NumberInput
+          min={5}
+          max={50}
+          value={maxTurns}
+          onChange={(v) => setMaxTurns(v)}
+          fallback={25}
+          className="w-32 px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+        />
+      </div>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving || enabledTools.length === 0}
+          className="px-4 py-1.5 rounded-md bg-primary text-white text-xs hover:bg-primary-hover disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save Settings"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GitHubTokenManager() {
+  const [status, setStatus] = useState<"valid" | "expired" | "missing" | "error" | null>(null);
+  const [source, setSource] = useState<"pat" | "github_app" | undefined>();
+  const [user, setUser] = useState<{ login: string; name: string } | undefined>();
+  const [message, setMessage] = useState<string | undefined>();
+  const [loading, setLoading] = useState(true);
+  const [newToken, setNewToken] = useState("");
+  const [rotating, setRotating] = useState(false);
+  const [showRotateForm, setShowRotateForm] = useState(false);
+
+  const checkStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await api.getGithubTokenStatus();
+      setStatus(res.status);
+      setSource(res.source);
+      setUser(res.user);
+      setMessage(res.message ?? res.error);
+    } catch {
+      setStatus("error");
+      setMessage("Failed to check token status");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
+
+  const handleRotate = async () => {
+    if (!newToken.trim()) return;
+    setRotating(true);
+    try {
+      const res = await api.rotateGithubToken(newToken.trim());
+      if (res.success) {
+        toast.success(res.message ?? "GitHub token replaced successfully");
+        setNewToken("");
+        setShowRotateForm(false);
+        checkStatus();
+      } else {
+        toast.error(res.error ?? "Token validation failed");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to replace token");
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card text-center text-text-muted text-sm">
+        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Checking token status...
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-4">
+      {/* Current status */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {status === "valid" ? (
+            <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+          ) : status === "expired" ? (
+            <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
+          ) : status === "missing" ? (
+            <XCircle className="w-5 h-5 text-error shrink-0" />
+          ) : (
+            <AlertTriangle className="w-5 h-5 text-text-muted shrink-0" />
+          )}
+          <div>
+            <p className="text-sm font-medium">
+              {status === "valid"
+                ? "Token is valid"
+                : status === "expired"
+                  ? "Token is expired or revoked"
+                  : status === "missing"
+                    ? "No token configured"
+                    : "Unable to verify token"}
+            </p>
+            {user && (
+              <p className="text-xs text-text-muted">
+                Authenticated as <span className="font-medium text-text">{user.login}</span>
+                {user.name && ` (${user.name})`}
+              </p>
+            )}
+            {source === "github_app" && (
+              <p className="text-xs text-text-muted">Using GitHub App integration</p>
+            )}
+            {message && !user && <p className="text-xs text-text-muted">{message}</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={checkStatus}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-text-muted hover:bg-bg-hover transition-colors"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+          {source !== "github_app" && (
+            <button
+              onClick={() => setShowRotateForm(!showRotateForm)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors"
+            >
+              <KeyRound className="w-3 h-3" />
+              {status === "missing" ? "Add Token" : "Replace Token"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Expired/missing warning */}
+      {(status === "expired" || status === "missing") && (
+        <div
+          className={`flex items-start gap-2 p-3 rounded-lg text-xs ${
+            status === "expired"
+              ? "bg-warning/10 border border-warning/20 text-warning"
+              : "bg-error/10 border border-error/20 text-error"
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">
+              {status === "expired"
+                ? "Your GitHub token has expired or been revoked"
+                : "No GitHub token is configured"}
+            </p>
+            <p className="mt-0.5 opacity-70">
+              PR watching, issue sync, and repo detection require a valid GitHub token. Replace it
+              below to restore these features.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Rotation form */}
+      {showRotateForm && (
+        <div className="space-y-3 p-3 rounded-lg border border-primary/30 bg-primary/5">
+          <p className="text-xs text-text-muted">
+            Enter a new GitHub Personal Access Token. The token will be validated before replacing
+            the existing one.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={newToken}
+              onChange={(e) => setNewToken(e.target.value)}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData.getData("text").trim();
+                if (pasted) setNewToken(pasted);
+              }}
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              className="flex-1 px-3 py-2 rounded-lg bg-bg border border-border text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            />
+            <button
+              onClick={handleRotate}
+              disabled={!newToken.trim() || rotating}
+              className="px-4 py-2 rounded-md bg-primary text-white text-xs font-medium hover:bg-primary-hover disabled:opacity-50 whitespace-nowrap"
+            >
+              {rotating ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Validating...
+                </span>
+              ) : (
+                "Validate & Save"
+              )}
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              setShowRotateForm(false);
+              setNewToken("");
+            }}
+            className="text-xs text-text-muted hover:text-text"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function SettingsPage() {
+  usePageTitle("Settings");
+  const [syncing, setSyncing] = useState(false);
+  const [providers, setProviders] = useState<any[]>([]);
+  const [showAddProvider, setShowAddProvider] = useState(false);
+  const [newProviderSource, setNewProviderSource] = useState("github");
+  const [providerConfig, setProviderConfig] = useState<Record<string, string>>({});
+  const [savingProvider, setSavingProvider] = useState(false);
+
+  useEffect(() => {
+    api
+      .listTicketProviders()
+      .then((res) => setProviders(res.providers))
+      .catch(() => {});
+  }, []);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await api.syncTickets();
+      toast.success(`Synced ${res.synced} tickets`);
+    } catch (err) {
+      toast.error("Sync failed", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleAddProvider = async () => {
+    setSavingProvider(true);
+    try {
+      const config: Record<string, unknown> = { ...providerConfig, label: "optio" };
+      await api.createTicketProvider({ source: newProviderSource, config });
+      const res = await api.listTicketProviders();
+      setProviders(res.providers);
+      setShowAddProvider(false);
+      setProviderConfig({});
+      setNewProviderSource("github");
+      toast.success("Ticket provider added");
+    } catch (err) {
+      toast.error("Failed to add provider", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setSavingProvider(false);
+    }
+  };
+
+  const handleDeleteProvider = async (id: string) => {
+    if (!confirm("Remove this ticket provider? This cannot be undone.")) return;
+    try {
+      await api.deleteTicketProvider(id);
+      setProviders((prev) => prev.filter((p) => p.id !== id));
+      toast.success("Provider removed");
+    } catch (err) {
+      toast.error("Failed to remove provider");
+    }
+  };
+
+  const handleReEnableProvider = async (id: string) => {
+    try {
+      await api.reEnableTicketProvider(id);
+      const res = await api.listTicketProviders();
+      setProviders(res.providers);
+      toast.success("Provider re-enabled");
+    } catch (err) {
+      toast.error("Failed to re-enable provider", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  };
+
+  const providerFields: Record<string, { key: string; label: string; type?: string }[]> = {
+    github: [
+      { key: "owner", label: "Owner" },
+      { key: "repo", label: "Repository" },
+    ],
+    jira: [
+      { key: "baseUrl", label: "Jira URL (e.g. https://company.atlassian.net)" },
+      { key: "email", label: "Email" },
+      { key: "apiToken", label: "API Token", type: "password" },
+      { key: "projectKey", label: "Project Key (optional)" },
+    ],
+    linear: [
+      { key: "apiKey", label: "API Key", type: "password" },
+      { key: "teamId", label: "Team ID" },
+    ],
+    notion: [
+      { key: "apiKey", label: "Integration Token", type: "password" },
+      { key: "databaseId", label: "Database ID" },
+    ],
+  };
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto space-y-8">
+      <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+
+      {/* Optio Agent Settings */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Bot className="w-4 h-4" />
+          Optio Agent Settings
+        </h2>
+        <OptioAgentSettings />
+      </section>
+
+      {/* Authentication */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3">Authentication</h2>
+        <AuthenticationSettings />
+      </section>
+
+      {/* GitHub Token */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Github className="w-4 h-4" />
+          GitHub Token
+        </h2>
+        <GitHubTokenManager />
+      </section>
+
+      {/* GitLab Token */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Gitlab className="w-4 h-4" />
+          GitLab Token
+        </h2>
+        <GitLabTokenManager />
+      </section>
+
+      {/* Notifications */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3">Notifications</h2>
+        <NotificationPreferences />
+      </section>
+
+      {/* Ticket Sync */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Ticket className="w-4 h-4" />
+          Ticket Integration
+        </h2>
+        <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-3">
+          <p className="text-xs text-text-muted">
+            Sync issues labeled with{" "}
+            <code className="px-1 py-0.5 bg-bg rounded text-primary">optio</code> from your
+            configured ticket providers.
+          </p>
+          {providers.length > 0 ? (
+            <div className="space-y-2">
+              {providers.map((p: any) => (
+                <div key={p.id} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-2 h-2 rounded-full ${p.hasAuthFailure ? "bg-error" : p.enabled ? "bg-success" : "bg-text-muted"}`}
+                      />
+                      <span className="capitalize">{p.source}</span>
+                      {!p.enabled && (
+                        <span className="text-xs text-error font-medium">Disabled</span>
+                      )}
+                      {p.hasAuthFailure && p.enabled && (
+                        <span className="text-xs text-error font-medium">Token invalid</span>
+                      )}
+                      <span className="text-xs text-text-muted">
+                        {p.source === "github" &&
+                          p.config?.owner &&
+                          `${p.config.owner}/${p.config.repo}`}
+                        {p.source === "notion" &&
+                          p.config?.databaseId &&
+                          `Database: ${p.config.databaseId}`}
+                        {p.source === "linear" && p.config?.teamId && `Team: ${p.config.teamId}`}
+                        {p.source === "jira" && p.config?.baseUrl && `${p.config.baseUrl}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {(p.hasAuthFailure || !p.enabled) && (
+                        <button
+                          onClick={() => handleReEnableProvider(p.id)}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                          title="Clear errors and re-enable this provider"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          Re-enable
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteProvider(p.id)}
+                        className="p-1 rounded hover:bg-error/10 text-text-muted hover:text-error transition-colors"
+                        title="Remove provider"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  {p.lastError && (
+                    <div className="ml-4 p-2 rounded bg-error/5 border border-error/20">
+                      <p className="text-xs text-error">{p.lastError}</p>
+                      <p className="text-xs text-text-muted mt-0.5">
+                        {p.lastErrorAt &&
+                          `Last failure: ${new Date(p.lastErrorAt).toLocaleString()}`}
+                        {p.consecutiveFailures > 0 &&
+                          ` (${p.consecutiveFailures} consecutive failures)`}
+                      </p>
+                      <p className="text-xs text-text-muted mt-1">
+                        Refresh your token and click Re-enable to resume syncing.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-text-muted">No ticket providers configured.</p>
+          )}
+
+          {showAddProvider ? (
+            <div className="space-y-3 pt-2 border-t border-border/50">
+              <div>
+                <label className="block text-xs text-text-muted mb-1">Provider</label>
+                <select
+                  value={newProviderSource}
+                  onChange={(e) => {
+                    setNewProviderSource(e.target.value);
+                    setProviderConfig({});
+                  }}
+                  className="w-full px-3 py-1.5 rounded-md bg-bg border border-border/50 text-sm"
+                >
+                  <option value="github">GitHub Issues</option>
+                  <option value="jira">Jira</option>
+                  <option value="linear">Linear</option>
+                  <option value="notion">Notion</option>
+                </select>
+              </div>
+              {providerFields[newProviderSource]?.map((field) => (
+                <div key={field.key}>
+                  <label className="block text-xs text-text-muted mb-1">{field.label}</label>
+                  <input
+                    type={field.type || "text"}
+                    value={providerConfig[field.key] || ""}
+                    onChange={(e) =>
+                      setProviderConfig((prev) => ({ ...prev, [field.key]: e.target.value }))
+                    }
+                    className="w-full px-3 py-1.5 rounded-md bg-bg border border-border/50 text-sm"
+                  />
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddProvider}
+                  disabled={savingProvider}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary text-white text-xs hover:bg-primary-hover transition-colors disabled:opacity-50"
+                >
+                  {savingProvider && <Loader2 className="w-3 h-3 animate-spin" />}
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddProvider(false);
+                    setProviderConfig({});
+                  }}
+                  className="px-3 py-1.5 rounded-md bg-bg text-text-muted text-xs hover:bg-bg-hover transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAddProvider(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+                Add Provider
+              </button>
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors disabled:opacity-50"
+              >
+                {syncing ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3" />
+                )}
+                Sync Now
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* MCP Servers */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Server className="w-4 h-4" />
+          Global MCP Servers
+        </h2>
+        <GlobalMcpServers />
+      </section>
+
+      {/* Custom Skills */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Sparkles className="w-4 h-4" />
+          Global Custom Skills
+        </h2>
+        <GlobalSkills />
+      </section>
+
+      {/* Marketplace Skills */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Sparkles className="w-4 h-4" />
+          Marketplace Skills
+        </h2>
+        <MarketplaceSkills />
+      </section>
+
+      {/* Prompt Template */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3">Default Agent Prompt Template</h2>
+        <PromptTemplateEditor />
+      </section>
+
+      {/* Default Code Review */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3">Default Code Review Agent</h2>
+        <DefaultReviewEditor />
+      </section>
+    </div>
+  );
+}

@@ -223,8 +223,21 @@ export class CodexAdapter implements AgentAdapter {
     if (input.taskFilePath) {
       parts.push(`- Read the task file at ${input.taskFilePath} for full details.`);
     }
+
+    const isGitLab = input.repoUrl?.includes("gitlab.com") || input.repoUrl?.includes("gitlab.");
+    const isCodeCommit = input.repoUrl?.includes("git-codecommit");
+
+    if (isGitLab) {
+      parts.push("- When you are done, create a merge request using the glab CLI.");
+    } else if (isCodeCommit) {
+      parts.push(
+        "- When you are done, push your branch and create a pull request using the aws codecommit create-pull-request CLI.",
+      );
+    } else {
+      parts.push("- When you are done, create a pull request using the gh CLI.");
+    }
+
     parts.push(
-      "- When you are done, create a pull request using the gh CLI.",
       `- Use branch name: ${TASK_BRANCH_PREFIX}${input.taskId}`,
       "- Write a clear PR title and description summarizing your changes.",
     );

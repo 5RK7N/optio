@@ -57,11 +57,11 @@ Branch: {{BRANCH_NAME}}
 {{#if AUTO_MERGE}}Auto-merge enabled{{else}}Manual review{{/if}}`;
     const result = renderPromptTemplate(template, {
       TASK_TITLE: "Fix bug",
-      BRANCH_NAME: "optio/task-123",
+      BRANCH_NAME: "agent/task-123",
       AUTO_MERGE: "true",
     });
     expect(result).toContain("Fix bug");
-    expect(result).toContain("optio/task-123");
+    expect(result).toContain("agent/task-123");
     expect(result).toContain("Auto-merge enabled");
   });
 });
@@ -95,7 +95,7 @@ describe("DEFAULT_PROMPT_TEMPLATE", () => {
   it("uses issue reference when ISSUE_NUMBER is provided", () => {
     const result = renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, {
       TASK_FILE: ".optio/task.md",
-      BRANCH_NAME: "optio/task-abc",
+      BRANCH_NAME: "agent/task-abc",
       TASK_ID: "abc-123",
       TASK_TITLE: "Fix login bug",
       REPO_NAME: "org/repo",
@@ -109,7 +109,7 @@ describe("DEFAULT_PROMPT_TEMPLATE", () => {
   it("falls back to task ID when ISSUE_NUMBER is not provided", () => {
     const result = renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, {
       TASK_FILE: ".optio/task.md",
-      BRANCH_NAME: "optio/task-abc",
+      BRANCH_NAME: "agent/task-abc",
       TASK_ID: "abc-123",
       TASK_TITLE: "Fix login bug",
       REPO_NAME: "org/repo",
@@ -123,7 +123,7 @@ describe("DEFAULT_PROMPT_TEMPLATE", () => {
   it("includes --draft flag when DRAFT_PR is true", () => {
     const result = renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, {
       TASK_FILE: ".optio/task.md",
-      BRANCH_NAME: "optio/task-abc",
+      BRANCH_NAME: "agent/task-abc",
       TASK_ID: "abc-123",
       TASK_TITLE: "Fix login bug",
       REPO_NAME: "org/repo",
@@ -138,7 +138,7 @@ describe("DEFAULT_PROMPT_TEMPLATE", () => {
   it("does not include --draft flag when DRAFT_PR is false", () => {
     const result = renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, {
       TASK_FILE: ".optio/task.md",
-      BRANCH_NAME: "optio/task-abc",
+      BRANCH_NAME: "agent/task-abc",
       TASK_ID: "abc-123",
       TASK_TITLE: "Fix login bug",
       REPO_NAME: "org/repo",
@@ -155,7 +155,7 @@ describe("PLANNING_MODE in DEFAULT_PROMPT_TEMPLATE", () => {
   it("includes planning mode instructions when PLANNING_MODE is truthy", () => {
     const result = renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, {
       TASK_FILE: ".optio/task.md",
-      BRANCH_NAME: "optio/task-abc",
+      BRANCH_NAME: "agent/task-abc",
       TASK_ID: "abc-123",
       TASK_TITLE: "Fix login bug",
       REPO_NAME: "org/repo",
@@ -171,7 +171,7 @@ describe("PLANNING_MODE in DEFAULT_PROMPT_TEMPLATE", () => {
   it("does not include planning mode instructions when PLANNING_MODE is empty", () => {
     const result = renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, {
       TASK_FILE: ".optio/task.md",
-      BRANCH_NAME: "optio/task-abc",
+      BRANCH_NAME: "agent/task-abc",
       TASK_ID: "abc-123",
       TASK_TITLE: "Fix login bug",
       REPO_NAME: "org/repo",
@@ -186,7 +186,7 @@ describe("PLANNING_MODE in DEFAULT_PROMPT_TEMPLATE", () => {
   it("does not include planning mode instructions when PLANNING_MODE is not set", () => {
     const result = renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, {
       TASK_FILE: ".optio/task.md",
-      BRANCH_NAME: "optio/task-abc",
+      BRANCH_NAME: "agent/task-abc",
       TASK_ID: "abc-123",
       TASK_TITLE: "Fix login bug",
       REPO_NAME: "org/repo",
@@ -201,7 +201,7 @@ describe("CodeCommit branch in DEFAULT_PROMPT_TEMPLATE", () => {
   it("uses aws codecommit create-pull-request when GIT_PLATFORM_CODECOMMIT is set", () => {
     const result = renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, {
       TASK_FILE: ".optio/task.md",
-      BRANCH_NAME: "optio/task-abc",
+      BRANCH_NAME: "agent/task-abc",
       TASK_ID: "abc-123",
       TASK_TITLE: "Fix login bug",
       REPO_NAME: "MyRepo",
@@ -213,7 +213,7 @@ describe("CodeCommit branch in DEFAULT_PROMPT_TEMPLATE", () => {
     });
     expect(result).toContain("aws codecommit create-pull-request");
     expect(result).toContain("repositoryName=MyRepo");
-    expect(result).toContain("sourceReference=optio/task-abc");
+    expect(result).toContain("sourceReference=agent/task-abc");
     expect(result).toContain("destinationReference=main");
     expect(result).not.toContain("gh pr create");
     expect(result).not.toContain("glab mr create");
@@ -222,7 +222,7 @@ describe("CodeCommit branch in DEFAULT_PROMPT_TEMPLATE", () => {
   it("falls back to gh when neither codecommit nor gitlab is set", () => {
     const result = renderPromptTemplate(DEFAULT_PROMPT_TEMPLATE, {
       TASK_FILE: ".optio/task.md",
-      BRANCH_NAME: "optio/task-abc",
+      BRANCH_NAME: "agent/task-abc",
       TASK_ID: "abc-123",
       TASK_TITLE: "Fix login bug",
       REPO_NAME: "org/repo",

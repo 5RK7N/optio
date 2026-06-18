@@ -1,3 +1,4 @@
+import { getAnthropicHost } from "../config/anthropic.js";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock the logger
@@ -83,14 +84,14 @@ describe("tls-observability", () => {
         socket: {
           getEphemeralKeyInfo: () => ({ name: "X25519" }),
         },
-        connectParams: { host: "api.anthropic.com" },
+        connectParams: { host: getAnthropicHost() },
       };
       handler(event);
       handler(event);
       handler(event);
 
       const counts = getTlsGroupCounts();
-      expect(counts).toEqual([{ host: "api.anthropic.com", group: "X25519", count: 3 }]);
+      expect(counts).toEqual([{ host: getAnthropicHost(), group: "X25519", count: 3 }]);
     });
 
     it("tracks different groups for the same host separately", () => {

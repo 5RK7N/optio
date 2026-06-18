@@ -581,7 +581,10 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
             <p className="text-xs text-text-muted mb-2">Allowed egress destinations:</p>
             <ul className="text-xs space-y-1 text-text-muted">
               <li>DNS (kube-dns, port 53 UDP/TCP)</li>
-              <li>HTTPS (port 443) &mdash; api.anthropic.com, api.openai.com, github.com</li>
+              <li>
+                HTTPS (port 443) &mdash; api.anthropic.com (or custom gateway), api.openai.com,
+                github.com
+              </li>
               <li>Intra-namespace &mdash; Optio API server (callbacks, token refresh)</li>
             </ul>
           </div>
@@ -625,7 +628,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
               </li>
               <li>
                 <code className="text-primary">ANTHROPIC_API_KEY</code> &rarr;{" "}
-                <code>x-api-key</code> for api.anthropic.com
+                <code>x-api-key</code> for api.anthropic.com (or custom gateway)
               </li>
             </ul>
             <p className="text-[10px] text-text-muted/60 mt-2">

@@ -110,7 +110,7 @@ export function buildWorkflowAgentCommand(
 
       return [
         `echo "[optio] Running workflow agent (OpenCode)..."`,
-        `opencode run --format json${modelFlag} "$OPTIO_PROMPT"`,
+        `opencode run --dangerously-skip-permissions --format json${modelFlag} -- "$OPTIO_PROMPT"`,
       ];
     }
     case "gemini": {
@@ -377,6 +377,19 @@ export function startWorkflowWorker() {
           OPTIO_AGENT_TYPE: workflow.agentRuntime,
           OPTIO_AUTH_MODE: claudeAuthMode,
         };
+        if (process.env.ANTHROPIC_BASE_URL) {
+          env.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
+        }
+
+        const anthropicBaseUrlSecret = await retrieveSecretWithFallback(
+          "ANTHROPIC_BASE_URL",
+          "global",
+          workspaceId,
+          workflowUserId,
+        ).catch(() => null);
+        if (anthropicBaseUrlSecret) {
+          env.ANTHROPIC_BASE_URL = anthropicBaseUrlSecret as string;
+        }
 
         // Inject model config
         if (workflow.model) {

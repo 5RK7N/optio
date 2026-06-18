@@ -383,6 +383,9 @@ export function startTaskWorker() {
           claudeVertexServiceAccountKey,
         });
 
+        // Ensure prompt is in environment (used in shell command execution)
+        agentConfig.env.OPTIO_PROMPT = finalRenderedPrompt;
+
         // ── MCP servers & custom skills injection ────────────────────
         const { getMcpServersForTask, buildMcpJsonContent } =
           await import("../services/mcp-server-service.js");
@@ -618,6 +621,20 @@ export function startTaskWorker() {
         );
         const allEnv: Record<string, string> = { ...agentConfig.env, ...resolvedSecrets };
 
+        const anthropicBaseUrlSecret = await retrieveSecretWithFallback(
+          "ANTHROPIC_BASE_URL",
+          "global",
+          taskWorkspaceId,
+          taskUserId,
+        ).catch(() => null);
+        if (anthropicBaseUrlSecret) {
+          allEnv.ANTHROPIC_BASE_URL = anthropicBaseUrlSecret as string;
+        }
+
+        if (process.env.ANTHROPIC_BASE_URL && !allEnv.ANTHROPIC_BASE_URL) {
+          allEnv.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
+        }
+
         // Resolve git platform tokens (not part of adapter requiredSecrets since they're infra-level)
         for (const secretName of ["GITHUB_TOKEN", "GITLAB_TOKEN", "GITLAB_HOST"]) {
           if (!allEnv[secretName]) {
@@ -816,6 +833,17 @@ export function startTaskWorker() {
         // Execute the task in the repo pod via worktree
         // On retry to the same pod, reset existing worktree instead of recreating
         const shouldResetWorktree = isRetry && pod.id === (task as any).lastPodId;
+
+        // Debug: log prompt presence before execution
+        log.info(
+          {
+            hasPrompt: !!allEnv.OPTIO_PROMPT,
+            promptLength: allEnv.OPTIO_PROMPT?.length ?? 0,
+            promptPreview: allEnv.OPTIO_PROMPT?.substring(0, 100),
+          },
+          "OPTIO_PROMPT env var check before execution",
+        );
+
         const execSession = await repoPool.execTaskInRepoPod(pod, task.id, agentCommand, allEnv, {
           resetWorktree: shouldResetWorktree,
         });
@@ -971,7 +999,7 @@ export function startTaskWorker() {
                   /https:\/\/(?![\w.-]+\/api\/)[^\s"]+\/(?:pull\/\d+|-\/merge_requests\/\d+)/g;
                 const prMatches = entry.content.match(prUrlPattern);
                 if (prMatches) {
-                  const taskBranch = `optio/task-${taskId}`;
+                  const taskBranch = `${TASK_BRANCH_PREFIX}${taskId}`;
                   const content = entry.content.trim();
                   const looksLikeJsonArray =
                     content.startsWith("[") && content.includes('"number"');
@@ -1759,7 +1787,7 @@ export function buildAgentCommand(
 
       return [
         `echo "[optio] Running OpenCode..."`,
-        `opencode run --format json ${modelFlag}${agentFlag}${resumeFlag} "$OPTIO_PROMPT"`,
+        `opencode run --dangerously-skip-permissions --format json ${modelFlag}${agentFlag}${resumeFlag} -- "$OPTIO_PROMPT"`,
       ];
     }
     case "gemini": {
@@ -1913,7 +1941,11 @@ export function inferExitCode(agentType: string, logs: string): number {
           continue; // Skip JSON lines — errors inside tool output are not fatal
         } catch {
           // Raw output line — check for fatal errors
-          if (trimmed.includes("fatal:") || trimmed.includes("Error: authentication_failed")) {
+          if (
+            trimmed.includes("fatal:") ||
+            trimmed.includes("Error: authentication_failed") ||
+            trimmed.toLowerCase().includes("invalid api key")
+          ) {
             return 1;
           }
         }

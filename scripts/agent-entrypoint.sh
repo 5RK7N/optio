@@ -7,8 +7,8 @@ echo "[optio] Repo: ${OPTIO_REPO_URL} (branch: ${OPTIO_REPO_BRANCH})"
 echo "[optio] Auth mode: ${OPTIO_AUTH_MODE:-api-key}"
 
 # Configure git
-git config --global user.name "Optio Agent"
-git config --global user.email "optio-agent@noreply.github.com"
+git config --global user.name "Code Agent"
+git config --global user.email "agent@railigen.host"
 
 # Authenticate CLI tools
 if [ -n "${GITHUB_TOKEN:-}" ]; then
@@ -108,7 +108,7 @@ fi
 cd repo
 
 # Create working branch
-BRANCH_NAME="${OPTIO_BRANCH_NAME:-optio/task-${OPTIO_TASK_ID}}"
+BRANCH_NAME="${OPTIO_BRANCH_NAME:-agent/task-${OPTIO_TASK_ID}}"
 git checkout -b "${BRANCH_NAME}"
 echo "[optio] Working on branch: ${BRANCH_NAME}"
 
@@ -199,15 +199,15 @@ case "${OPTIO_AGENT_TYPE}" in
     copilot ${COPILOT_FLAGS} -p "${OPTIO_PROMPT}"
     ;;
   opencode)
-    echo "[optio] Running OpenCode (experimental)..."
-    OPENCODE_FLAGS="run --format json"
+    echo "[optio] Running OpenCode..."
+    OPENCODE_FLAGS="run --dangerously-skip-permissions --format json"
     if [ -n "${OPTIO_OPENCODE_MODEL:-}" ]; then
       OPENCODE_FLAGS="${OPENCODE_FLAGS} --model ${OPTIO_OPENCODE_MODEL}"
     fi
     if [ -n "${OPTIO_OPENCODE_AGENT:-}" ]; then
       OPENCODE_FLAGS="${OPENCODE_FLAGS} --agent ${OPTIO_OPENCODE_AGENT}"
     fi
-    opencode ${OPENCODE_FLAGS} "${OPTIO_PROMPT}"
+    opencode ${OPENCODE_FLAGS} -- "${OPTIO_PROMPT}"
     ;;
   gemini)
     echo "[optio] Running Google Gemini..."

@@ -5,8 +5,8 @@ echo "[optio] Initializing repo pod"
 echo "[optio] Repo: ${OPTIO_REPO_URL} (branch: ${OPTIO_REPO_BRANCH})"
 
 # Configure git author for initial clone (overridden per-worktree at task exec time)
-git config --global user.name "${GIT_BOT_NAME:-${GITHUB_APP_BOT_NAME:-Optio Agent}}"
-git config --global user.email "${GIT_BOT_EMAIL:-${GITHUB_APP_BOT_EMAIL:-optio-agent@noreply.github.com}}"
+git config --global user.name "${GIT_BOT_NAME:-${GITHUB_APP_BOT_NAME:-Code Agent}}"
+git config --global user.email "${GIT_BOT_EMAIL:-${GITHUB_APP_BOT_EMAIL:-agent@railigent.host}}"
 
 # Detect git platform from repo URL
 OPTIO_GIT_HOST=""

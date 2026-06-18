@@ -1,3 +1,4 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Mocks (must come before imports) ───────────────────────────────────────
@@ -92,7 +93,7 @@ describe("validateClaudeToken", () => {
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response("{}", { status: 200 }));
     await validateClaudeToken("my-token");
-    expect(fetchSpy).toHaveBeenCalledWith("https://api.anthropic.com/api/oauth/usage", {
+    expect(fetchSpy).toHaveBeenCalledWith(`${ANTHROPIC_BASE_URL}/api/oauth/usage`, {
       headers: {
         Authorization: "Bearer my-token",
         "anthropic-beta": "oauth-2025-04-20",

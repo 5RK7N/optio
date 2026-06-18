@@ -1,3 +1,4 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
 import { Queue, Worker } from "bullmq";
 import { logger } from "../logger.js";
 import { getBullMQConnectionOptions } from "../services/redis-config.js";
@@ -49,7 +50,7 @@ export async function validateClaudeToken(
   token: string,
 ): Promise<{ valid: boolean; error?: string }> {
   try {
-    const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
+    const res = await fetch(`${ANTHROPIC_BASE_URL}/api/oauth/usage`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "anthropic-beta": "oauth-2025-04-20",

@@ -1,3 +1,4 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
@@ -392,7 +393,7 @@ export async function setupRoutes(rawApp: FastifyInstance) {
       const { key } = req.body;
 
       try {
-        const res = await fetch("https://api.anthropic.com/v1/models", {
+        const res = await fetch(`${ANTHROPIC_BASE_URL}/v1/models`, {
           headers: {
             "x-api-key": key,
             "anthropic-version": "2023-06-01",

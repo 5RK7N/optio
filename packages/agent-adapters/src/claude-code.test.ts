@@ -60,7 +60,7 @@ describe("ClaudeCodeAdapter", () => {
       expect(config.env.OPTIO_REPO_BRANCH).toBe("main");
       expect(config.env.OPTIO_PROMPT).toBe("Fix the bug");
       expect(config.env.OPTIO_AGENT_TYPE).toBe("claude-code");
-      expect(config.env.OPTIO_BRANCH_NAME).toBe("optio/task-test-123");
+      expect(config.env.OPTIO_BRANCH_NAME).toBe("agent/task-test-123");
       expect(config.env.OPTIO_AUTH_MODE).toBe("api-key");
     });
 
@@ -166,7 +166,7 @@ describe("ClaudeCodeAdapter", () => {
         ...baseInput,
         taskId: "abc-456",
       });
-      expect(config.env.OPTIO_BRANCH_NAME).toBe("optio/task-abc-456");
+      expect(config.env.OPTIO_BRANCH_NAME).toBe("agent/task-abc-456");
     });
 
     it("includes task file in setupFiles when taskFileContent and taskFilePath provided", () => {

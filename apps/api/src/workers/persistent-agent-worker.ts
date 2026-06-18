@@ -161,7 +161,7 @@ function buildAgentCommand(
 
       return [
         `echo "[optio] Running persistent agent turn (OpenCode)..."`,
-        `opencode run --format json${modelFlag} "$OPTIO_PROMPT"`,
+        `opencode run --dangerously-skip-permissions --format json${modelFlag} -- "$OPTIO_PROMPT"`,
       ];
     }
     case "gemini": {
@@ -330,6 +330,20 @@ export function startPersistentAgentWorker() {
           OPTIO_AGENT_TOKEN: agentId,
           OPTIO_API_URL: apiUrl,
         };
+        if (process.env.ANTHROPIC_BASE_URL) {
+          env.ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
+        }
+
+        const anthropicBaseUrlSecret = await retrieveSecretWithFallback(
+          "ANTHROPIC_BASE_URL",
+          "global",
+          claimedAgent.workspaceId ?? null,
+          claimedAgent.createdBy ?? null,
+        ).catch(() => null);
+        if (anthropicBaseUrlSecret) {
+          env.ANTHROPIC_BASE_URL = anthropicBaseUrlSecret as string;
+        }
+
         if (claimedAgent.model) env.OPTIO_CLAUDE_MODEL = claimedAgent.model;
 
         if (claudeAuthMode === "api-key") {

@@ -1,3 +1,4 @@
+import { ANTHROPIC_BASE_URL } from "../config/anthropic.js";
 import type { FastifyInstance } from "fastify";
 import { getSettings } from "../services/optio-settings-service.js";
 import { authenticateWs, extractSessionToken } from "./ws-auth.js";
@@ -20,8 +21,6 @@ import {
 } from "./ws-limits.js";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const ANTHROPIC_API_URL = process.env.ANTHROPIC_API_BASE_URL ?? "https://api.anthropic.com";
 
 /**
  * Fallback when the stored model ID is unrecognised (not a known alias, not a
@@ -475,7 +474,7 @@ export async function optioChatWs(app: FastifyInstance) {
 
         let response: Response;
         try {
-          response = await fetch(`${ANTHROPIC_API_URL}/v1/messages`, {
+          response = await fetch(`${ANTHROPIC_BASE_URL}/v1/messages`, {
             method: "POST",
             headers,
             body: JSON.stringify(body),
