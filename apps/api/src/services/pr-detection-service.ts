@@ -22,7 +22,7 @@ export function parseOwnerRepo(repoUrl: string): { owner: string; repo: string }
  * Check if an open PR already exists for a task's branch.
  *
  * Uses the GitPlatform abstraction to list open PRs filtered by branch.
- * Branch naming is deterministic: `optio/task-{taskId}`
+ * Branch naming is deterministic: `agent/task-{taskId}`
  *
  * Returns the PR info if found, or null if no PR exists.
  */

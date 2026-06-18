@@ -261,6 +261,6 @@ describe("launchReview", () => {
     expect(taskFileContent).toContain("Add tests");
     expect(taskFileContent).toContain("Write unit tests for module Z");
     expect(taskFileContent).toContain("#99");
-    expect(taskFileContent).toContain("optio/task-task-3");
+    expect(taskFileContent).toContain("agent/task-task-3");
   });
 });

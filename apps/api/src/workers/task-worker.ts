@@ -999,7 +999,7 @@ export function startTaskWorker() {
                   /https:\/\/(?![\w.-]+\/api\/)[^\s"]+\/(?:pull\/\d+|-\/merge_requests\/\d+)/g;
                 const prMatches = entry.content.match(prUrlPattern);
                 if (prMatches) {
-                  const taskBranch = `optio/task-${taskId}`;
+                  const taskBranch = `${TASK_BRANCH_PREFIX}${taskId}`;
                   const content = entry.content.trim();
                   const looksLikeJsonArray =
                     content.startsWith("[") && content.includes('"number"');

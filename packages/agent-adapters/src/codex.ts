@@ -230,7 +230,9 @@ export class CodexAdapter implements AgentAdapter {
     if (isGitLab) {
       parts.push("- When you are done, create a merge request using the glab CLI.");
     } else if (isCodeCommit) {
-      parts.push("- When you are done, push your branch and create a pull request using the aws codecommit create-pull-request CLI.");
+      parts.push(
+        "- When you are done, push your branch and create a pull request using the aws codecommit create-pull-request CLI.",
+      );
     } else {
       parts.push("- When you are done, create a pull request using the gh CLI.");
     }

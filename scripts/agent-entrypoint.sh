@@ -108,7 +108,7 @@ fi
 cd repo
 
 # Create working branch
-BRANCH_NAME="${OPTIO_BRANCH_NAME:-optio/task-${OPTIO_TASK_ID}}"
+BRANCH_NAME="${OPTIO_BRANCH_NAME:-agent/task-${OPTIO_TASK_ID}}"
 git checkout -b "${BRANCH_NAME}"
 echo "[optio] Working on branch: ${BRANCH_NAME}"
 
