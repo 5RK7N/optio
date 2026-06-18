@@ -331,7 +331,7 @@ export function PrBrowser() {
                       ) : (
                         <Eye className="w-3 h-3" />
                       )}
-                      Review with Optio
+                      Review with Agent
                     </button>
                   )}
                   <button
