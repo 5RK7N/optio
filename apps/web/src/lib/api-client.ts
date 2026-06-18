@@ -337,6 +337,26 @@ export const api = {
       body: JSON.stringify({ token }),
     }),
 
+  getGitlabTokenStatus: () =>
+    request<{
+      status: "valid" | "expired" | "missing" | "error";
+      host?: string;
+      user?: { login: string; name: string };
+      message?: string;
+      error?: string;
+    }>("/api/gitlab-token/status"),
+
+  rotateGitlabToken: (token: string, host?: string) =>
+    request<{
+      success: boolean;
+      user?: { login: string; name: string };
+      message?: string;
+      error?: string;
+    }>("/api/gitlab-token/rotate", {
+      method: "POST",
+      body: JSON.stringify({ token, host }),
+    }),
+
   // Setup
   getSetupStatus: () =>
     request<{

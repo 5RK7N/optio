@@ -23,7 +23,9 @@ import {
   Trash2,
   Ticket,
   Github,
+  Gitlab,
   KeyRound,
+  ExternalLink,
 } from "lucide-react";
 import {
   OPTIO_TOOL_CATEGORIES,
@@ -534,6 +536,212 @@ function GlobalMcpServers() {
             >
               Add Server
             </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GitLabTokenManager() {
+  const [status, setStatus] = useState<"valid" | "expired" | "missing" | "error" | null>(null);
+  const [host, setHost] = useState<string>("gitlab.com");
+  const [user, setUser] = useState<{ login: string; name: string } | undefined>();
+  const [message, setMessage] = useState<string | undefined>();
+  const [loading, setLoading] = useState(true);
+  const [newToken, setNewToken] = useState("");
+  const [newHost, setNewHost] = useState("gitlab.com");
+  const [rotating, setRotating] = useState(false);
+  const [showRotateForm, setShowRotateForm] = useState(false);
+
+  const checkStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await api.getGitlabTokenStatus();
+      setStatus(res.status);
+      setHost(res.host || "gitlab.com");
+      setNewHost(res.host || "gitlab.com");
+      setUser(res.user);
+      setMessage(res.message ?? res.error);
+    } catch {
+      setStatus("error");
+      setMessage("Failed to check token status");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
+
+  const handleRotate = async () => {
+    if (!newToken.trim()) return;
+    setRotating(true);
+    try {
+      const res = await api.rotateGitlabToken(newToken.trim(), newHost.trim() || undefined);
+      if (res.success) {
+        toast.success(res.message ?? "GitLab token replaced successfully");
+        setNewToken("");
+        setShowRotateForm(false);
+        checkStatus();
+      } else {
+        toast.error(res.error ?? "Token validation failed");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to replace token");
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card text-center text-text-muted text-sm">
+        <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Checking token status...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Current Status Card */}
+      <div className="flex items-start justify-between p-4 rounded-xl border border-border/50 bg-bg-card">
+        <div className="flex items-start gap-3">
+          <div
+            className={`mt-1 flex items-center justify-center w-8 h-8 rounded-full ${
+              status === "valid" ? "bg-success/10 text-success" : "bg-error/10 text-error"
+            }`}
+          >
+            {status === "valid" ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : status === "missing" ? (
+              <KeyRound className="w-4 h-4" />
+            ) : (
+              <XCircle className="w-4 h-4" />
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-text">
+              {status === "valid"
+                ? "GitLab token is valid"
+                : status === "expired"
+                  ? "GitLab token has expired"
+                  : status === "missing"
+                    ? "No token configured"
+                    : "Unable to verify token"}
+            </p>
+            {user && (
+              <p className="text-xs text-text-muted">
+                Authenticated as <span className="font-medium text-text">{user.login}</span>
+                {user.name && ` (${user.name})`}
+              </p>
+            )}
+            <p className="text-xs text-text-muted mt-0.5">
+              Host: <span className="font-medium text-text">{host}</span>
+            </p>
+            {message && !user && <p className="text-xs text-text-muted mt-0.5">{message}</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={checkStatus}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-text-muted hover:bg-bg-hover transition-colors"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowRotateForm(!showRotateForm)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors"
+          >
+            <KeyRound className="w-3 h-3" />
+            {status === "missing" ? "Add Token" : "Replace Token"}
+          </button>
+        </div>
+      </div>
+
+      {/* Warnings */}
+      {status !== "valid" && (
+        <div
+          className={`flex items-start gap-2 p-3 rounded-lg text-xs ${
+            status === "expired"
+              ? "bg-warning/10 border border-warning/20 text-warning"
+              : "bg-error/10 border border-error/20 text-error"
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">
+              {status === "expired"
+                ? "Your GitLab token has expired or been revoked"
+                : "No GitLab token is configured"}
+            </p>
+            <p className="mt-0.5 opacity-70">
+              PR watching, issue sync, and repo detection require a valid GitLab token. Replace it
+              below to restore these features.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Rotation form */}
+      {showRotateForm && (
+        <div className="space-y-4 p-4 rounded-lg border border-primary/30 bg-primary/5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-text-muted">
+              Configure your GitLab Personal Access Token. The token will be validated before saving.
+            </p>
+            <a
+              href={`https://${newHost || "gitlab.com"}/-/user_settings/personal_access_tokens?name=Optio+Agent&scopes=api,read_user,read_repository,write_repository`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+            >
+              Generate Token <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-text-muted mb-1">
+                GitLab Host <span className="font-normal opacity-70">(leave default for gitlab.com)</span>
+              </label>
+              <input
+                type="text"
+                value={newHost}
+                onChange={(e) => setNewHost(e.target.value)}
+                placeholder="gitlab.com"
+                className="w-full px-3 py-1.5 rounded-md bg-bg border border-border text-sm focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-text-muted mb-1">Token</label>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={newToken}
+                  onChange={(e) => setNewToken(e.target.value)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const pasted = e.clipboardData.getData("text").trim();
+                    if (pasted) {
+                      setNewToken(pasted);
+                    }
+                  }}
+                  placeholder="glpat-..."
+                  className="flex-1 px-3 py-1.5 rounded-md bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                />
+                <button
+                  onClick={handleRotate}
+                  disabled={rotating || !newToken.trim()}
+                  className="px-4 py-1.5 rounded-md bg-primary text-white text-xs font-medium hover:bg-primary-hover disabled:opacity-50 min-w-[80px]"
+                >
+                  {rotating ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : "Save Token"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1768,6 +1976,15 @@ export default function SettingsPage() {
           GitHub Token
         </h2>
         <GitHubTokenManager />
+      </section>
+
+      {/* GitLab Token */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Gitlab className="w-4 h-4" />
+          GitLab Token
+        </h2>
+        <GitLabTokenManager />
       </section>
 
       {/* Notifications */}
