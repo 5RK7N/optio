@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 import { Zap, Loader2, KeyRound } from "lucide-react";
+import { PasskeyLogin } from "./passkeys-login";
 
 const PROVIDER_ICONS: Record<string, React.ReactNode> = {
   github: (
@@ -107,6 +108,15 @@ export default function LoginPage() {
           </div>
         ) : (
           <div className="space-y-3">
+            <PasskeyLogin />
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border/50" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-bg px-2 text-text-muted">Or continue with</span>
+              </div>
+            </div>
             {providers.map((provider) => (
               <a
                 key={provider.name}

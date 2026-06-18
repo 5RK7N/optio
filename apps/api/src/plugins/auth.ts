@@ -85,6 +85,9 @@ const PUBLIC_AUTH_ROUTES = new Set([
   "/api/auth/oidc/callback",
   "/api/auth/cli/start",
   "/api/auth/cli/token",
+  "/api/auth/passkey/status",
+  "/api/auth/passkey/login/generate-options",
+  "/api/auth/passkey/login/verify",
 ]);
 
 /**

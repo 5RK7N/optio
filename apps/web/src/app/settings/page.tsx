@@ -1,4 +1,5 @@
 "use client";
+import { PasskeySettings } from "./passkeys";
 
 import { useState, useEffect } from "react";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -7,20 +8,16 @@ import { NumberInput } from "@/components/number-input";
 import { toast } from "sonner";
 import {
   Loader2,
-  Bell,
-  RefreshCw,
-  Shield,
-  CheckCircle2,
-  XCircle,
+  Settings,
+  Github,
+  Ticket,
   Server,
   Sparkles,
-  Plus,
-  X,
   Bot,
-  AlertTriangle,
-  ChevronDown,
-  ChevronRight,
+  RefreshCw,
   Trash2,
+  Plus,
+  Shield,
   Ticket,
   Github,
   Gitlab,

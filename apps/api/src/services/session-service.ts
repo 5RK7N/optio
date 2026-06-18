@@ -259,3 +259,22 @@ export async function cleanupExpiredSessions(): Promise<number> {
   const result = await db.delete(sessions).where(lt(sessions.expiresAt, new Date())).returning();
   return result.length;
 }
+
+export async function createSessionToken(userId: string): Promise<string> {
+  const { randomBytes, createHash } = await import("crypto");
+  const token = randomBytes(32).toString("hex");
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+
+  await db.insert(sessions).values({
+    id: token,
+    userId,
+    tokenHash,
+    expiresAt,
+  });
+
+  await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, userId));
+
+  return token;
+}
