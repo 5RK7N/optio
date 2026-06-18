@@ -378,6 +378,10 @@ const MIGRATED_ROUTES: MigratedRoute[] = [
   { method: "get", path: "/api/github-token/status" },
   { method: "post", path: "/api/github-token/rotate" },
 
+  // gitlab-token.ts (2)
+  { method: "get", path: "/api/gitlab-token/status" },
+  { method: "post", path: "/api/gitlab-token/rotate" },
+
   // Phase 9 — stragglers and hardening
   // health.ts (1)
   { method: "get", path: "/api/health" },
@@ -420,7 +424,8 @@ describe("OpenAPI spec — migrated routes are fully documented", () => {
     // Removed 14 routes (8 schedule + 6 task-template) that were redundant
     // with agent workflows. 183 - 14 = 169. Then added 2 CodeCommit setup
     // routes (validate/aws-credentials and repos/codecommit) → 171.
-    expect(MIGRATED_ROUTES).toHaveLength(171);
+    // Plus 2 for gitlab-token.ts -> 173.
+    expect(MIGRATED_ROUTES).toHaveLength(173);
   });
 
   it("components.schemas contains the Task domain types", () => {
