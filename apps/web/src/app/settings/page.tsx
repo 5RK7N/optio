@@ -18,11 +18,15 @@ import {
   Trash2,
   Plus,
   Shield,
-  Ticket,
-  Github,
   Gitlab,
   KeyRound,
   ExternalLink,
+  X,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import {
   OPTIO_TOOL_CATEGORIES,
@@ -687,7 +691,8 @@ function GitLabTokenManager() {
         <div className="space-y-4 p-4 rounded-lg border border-primary/30 bg-primary/5">
           <div className="flex items-center justify-between">
             <p className="text-xs text-text-muted">
-              Configure your GitLab Personal Access Token. The token will be validated before saving.
+              Configure your GitLab Personal Access Token. The token will be validated before
+              saving.
             </p>
             <a
               href={`https://${newHost || "gitlab.com"}/-/user_settings/personal_access_tokens?name=Optio+Agent&scopes=api,read_user,read_repository,write_repository`}
@@ -702,7 +707,8 @@ function GitLabTokenManager() {
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-text-muted mb-1">
-                GitLab Host <span className="font-normal opacity-70">(leave default for gitlab.com)</span>
+                GitLab Host{" "}
+                <span className="font-normal opacity-70">(leave default for gitlab.com)</span>
               </label>
               <input
                 type="text"
@@ -735,7 +741,11 @@ function GitLabTokenManager() {
                   disabled={rotating || !newToken.trim()}
                   className="px-4 py-1.5 rounded-md bg-primary text-white text-xs font-medium hover:bg-primary-hover disabled:opacity-50 min-w-[80px]"
                 >
-                  {rotating ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : "Save Token"}
+                  {rotating ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" />
+                  ) : (
+                    "Save Token"
+                  )}
                 </button>
               </div>
             </div>

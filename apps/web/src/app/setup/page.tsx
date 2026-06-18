@@ -2119,7 +2119,8 @@ export default function SetupPage() {
               <div className="flex items-start gap-2 p-3 rounded-md bg-bg-card border border-border text-sm text-text-muted mt-2">
                 <Info className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
                 <p>
-                  Can&apos;t find your repository in the list above? You can always add it later on the Repositories page once setup is complete.
+                  Can&apos;t find your repository in the list above? You can always add it later on
+                  the Repositories page once setup is complete.
                 </p>
               </div>
 
