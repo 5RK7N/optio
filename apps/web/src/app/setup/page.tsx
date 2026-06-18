@@ -21,6 +21,7 @@ import {
   Plus,
   ExternalLink,
   FileText,
+  Info,
 } from "lucide-react";
 
 const STEPS = [
@@ -39,31 +40,6 @@ interface RepoEntry {
   defaultBranch?: string;
   isPrivate?: boolean;
   validated: boolean;
-}
-
-function normalizeRepoUrl(url: string): string {
-  let normalized = url.trim();
-
-  // Handle git@host:owner/repo
-  const gitAtRegex = /^git@([^:]+):(.+)$/;
-  const match1 = normalized.match(gitAtRegex);
-  if (match1) {
-    normalized = `https://${match1[1]}/${match1[2]}`;
-  } else {
-    // Handle ssh://git@host/owner/repo
-    const sshRegex = /^ssh:\/\/(?:git@)?([^/]+)\/(.+)$/;
-    const match2 = normalized.match(sshRegex);
-    if (match2) {
-      normalized = `https://${match2[1]}/${match2[2]}`;
-    }
-  }
-
-  // Handle case where .git is at the end
-  if (normalized.endsWith(".git")) {
-    normalized = normalized.slice(0, -4);
-  }
-
-  return normalized;
 }
 
 function isGitHubUrl(url: string): boolean {
@@ -165,7 +141,6 @@ export default function SetupPage() {
     }>
   >([]);
   const [suggestedLoading, setSuggestedLoading] = useState(false);
-  const [manualRepoUrl, setManualRepoUrl] = useState("");
   const validatingUrlsRef = useRef<Set<string>>(new Set());
 
   // Step 5: Prompt template
@@ -2141,36 +2116,11 @@ export default function SetupPage() {
                 </div>
               )}
 
-              {/* Manual add */}
-              <div>
-                <label className="text-xs text-text-muted mb-1.5 block">Or add by URL</label>
-                <div className="flex gap-2">
-                  <input
-                    value={manualRepoUrl}
-                    onChange={(e) => setManualRepoUrl(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && manualRepoUrl.trim()) {
-                        const url = normalizeRepoUrl(manualRepoUrl);
-                        setRepos([...repos, { url, validated: false }]);
-                        setManualRepoUrl("");
-                      }
-                    }}
-                    placeholder="https://example.com/path/to/repo.git"
-                    className="flex-1 px-3 py-2 rounded-md bg-bg border border-border text-sm focus:outline-none focus:border-primary"
-                  />
-                  <button
-                    onClick={() => {
-                      if (!manualRepoUrl.trim()) return;
-                      const url = normalizeRepoUrl(manualRepoUrl);
-                      setRepos([...repos, { url, validated: false }]);
-                      setManualRepoUrl("");
-                    }}
-                    disabled={!manualRepoUrl.trim()}
-                    className="px-3 py-2 rounded-md bg-bg-hover text-sm hover:bg-border disabled:opacity-50"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
+              <div className="flex items-start gap-2 p-3 rounded-md bg-bg-card border border-border text-sm text-text-muted mt-2">
+                <Info className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+                <p>
+                  Can&apos;t find your repository in the list above? You can always add it later on the Repositories page once setup is complete.
+                </p>
               </div>
 
               <div className="flex items-center justify-between">
