@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "@/lib/api-client";
-import { getWsBaseUrl } from "@/lib/ws-client.js";
+import { createSessionChatClient, type WsClient } from "@/lib/ws-client.js";
+import { getWsTokenProvider } from "@/lib/ws-auth";
 import type { LogEntry } from "@/hooks/use-logs";
 import type { UserMessage } from "@/components/log-viewer";
 
@@ -46,7 +47,7 @@ export function useSessionLogs(sessionId: string, opts: UseSessionLogsOpts = {})
   const [costUsd, setCostUsd] = useState(0);
   const [capped, setCapped] = useState(false);
 
-  const wsRef = useRef<WebSocket | null>(null);
+  const wsRef = useRef<WsClient | null>(null);
   const onCostUpdateRef = useRef(opts.onCostUpdate);
   onCostUpdateRef.current = opts.onCostUpdate;
 
@@ -59,7 +60,7 @@ export function useSessionLogs(sessionId: string, opts: UseSessionLogsOpts = {})
     const pendingLive: LogEntry[] = [];
     let merged = false;
 
-    const ws = new WebSocket(`${getWsBaseUrl()}/ws/sessions/${sessionId}/chat`);
+    const ws = createSessionChatClient(sessionId, getWsTokenProvider());
     wsRef.current = ws;
 
     const appendLive = (entry: LogEntry) => {
@@ -82,17 +83,13 @@ export function useSessionLogs(sessionId: string, opts: UseSessionLogsOpts = {})
       });
     };
 
-    ws.onopen = () => setStatus("ready");
-    ws.onclose = () => setStatus("disconnected");
-    ws.onerror = () => setStatus("error");
+    ws.on("$open", () => setStatus("ready"));
+    ws.on("$close", () => setStatus("disconnected"));
+    ws.on("$error", () => setStatus("error"));
 
-    ws.onmessage = (raw) => {
-      let msg: any;
-      try {
-        msg = JSON.parse(raw.data);
-      } catch {
-        return;
-      }
+    // WsClient manages its own reconnections but we track logical state via events.
+    // It emits JSON objects directly.
+    ws.on("*", (msg: any) => {
       switch (msg.type) {
         case "status":
           setStatus(msg.status as SessionStatus);
@@ -133,7 +130,12 @@ export function useSessionLogs(sessionId: string, opts: UseSessionLogsOpts = {})
           });
           break;
       }
-    };
+    });
+
+    ws.connect();
+
+    // Since WsClient reconnects, assume connecting until the first 'status' or chat event.
+    setStatus("connecting");
 
     api
       .getSessionChat(sessionId, { limit: HISTORICAL_LIMIT })
@@ -177,7 +179,7 @@ export function useSessionLogs(sessionId: string, opts: UseSessionLogsOpts = {})
       });
 
     return () => {
-      ws.close();
+      ws.disconnect();
       wsRef.current = null;
     };
   }, [sessionId]);
@@ -186,19 +188,19 @@ export function useSessionLogs(sessionId: string, opts: UseSessionLogsOpts = {})
     const trimmed = text.trim();
     if (!trimmed) return;
     const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!ws) return;
     const ts = new Date().toISOString();
     setUserMessages((prev) => [...prev, { text: trimmed, timestamp: ts, status: "sent" }]);
-    ws.send(JSON.stringify({ type: "message", content: trimmed }));
+    ws.send({ type: "message", content: trimmed });
   }, []);
 
   const interrupt = useCallback(() => {
-    wsRef.current?.send(JSON.stringify({ type: "interrupt" }));
+    wsRef.current?.send({ type: "interrupt" });
   }, []);
 
   const setModel = useCallback((next: string) => {
     setModelState(next);
-    wsRef.current?.send(JSON.stringify({ type: "set_model", model: next }));
+    wsRef.current?.send({ type: "set_model", model: next });
   }, []);
 
   const clear = useCallback(() => {
