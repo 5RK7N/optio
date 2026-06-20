@@ -606,21 +606,15 @@ function GitLabTokenManager() {
 
   return (
     <div className="space-y-4">
-      {/* Current Status Card */}
-      <div className="flex items-start justify-between p-4 rounded-xl border border-border/50 bg-bg-card">
+      {/* Current Status Row */}
+      <div className="flex items-start justify-between p-3 rounded-lg border border-border">
         <div className="flex items-start gap-3">
           <div
             className={`mt-1 flex items-center justify-center w-8 h-8 rounded-full ${
               status === "valid" ? "bg-success/10 text-success" : "bg-error/10 text-error"
             }`}
           >
-            {status === "valid" ? (
-              <CheckCircle2 className="w-4 h-4" />
-            ) : status === "missing" ? (
-              <KeyRound className="w-4 h-4" />
-            ) : (
-              <XCircle className="w-4 h-4" />
-            )}
+            <Gitlab className="w-4 h-4" />
           </div>
           <div>
             <p className="text-sm font-medium text-text">
@@ -629,8 +623,8 @@ function GitLabTokenManager() {
                 : status === "expired"
                   ? "GitLab token has expired"
                   : status === "missing"
-                    ? "No token configured"
-                    : "Unable to verify token"}
+                    ? "No GitLab token configured"
+                    : "Unable to verify GitLab token"}
             </p>
             {user && (
               <p className="text-xs text-text-muted">
@@ -1732,28 +1726,26 @@ function GitHubTokenManager() {
   }
 
   return (
-    <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-4">
-      {/* Current status */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {status === "valid" ? (
-            <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
-          ) : status === "expired" ? (
-            <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
-          ) : status === "missing" ? (
-            <XCircle className="w-5 h-5 text-error shrink-0" />
-          ) : (
-            <AlertTriangle className="w-5 h-5 text-text-muted shrink-0" />
-          )}
+    <div className="space-y-4">
+      {/* Current Status Row */}
+      <div className="flex items-start justify-between p-3 rounded-lg border border-border">
+        <div className="flex items-start gap-3">
+          <div
+            className={`mt-1 flex items-center justify-center w-8 h-8 rounded-full ${
+              status === "valid" ? "bg-success/10 text-success" : "bg-error/10 text-error"
+            }`}
+          >
+            <Github className="w-4 h-4" />
+          </div>
           <div>
             <p className="text-sm font-medium">
               {status === "valid"
-                ? "Token is valid"
+                ? "GitHub token is valid"
                 : status === "expired"
-                  ? "Token is expired or revoked"
+                  ? "GitHub token has expired"
                   : status === "missing"
-                    ? "No token configured"
-                    : "Unable to verify token"}
+                    ? "No GitHub token configured"
+                    : "Unable to verify GitHub token"}
             </p>
             {user && (
               <p className="text-xs text-text-muted">
@@ -1960,13 +1952,17 @@ export default function SettingsPage() {
     <div className="p-6 max-w-3xl mx-auto space-y-8">
       <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
 
-      {/* Optio Agent Settings */}
+      {/* Git Platform Tokens */}
       <section>
         <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
-          <Bot className="w-4 h-4" />
-          Optio Agent Settings
+          <KeyRound className="w-4 h-4" />
+          Git Platform Tokens
         </h2>
-        <OptioAgentSettings />
+        <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-6">
+          <GitHubTokenManager />
+          <div className="border-t border-border/50" />
+          <GitLabTokenManager />
+        </div>
       </section>
 
       {/* Authentication */}
@@ -1979,30 +1975,6 @@ export default function SettingsPage() {
       <section>
         <h2 className="text-sm font-medium text-text-muted mb-3">Passkey</h2>
         <PasskeySettings />
-      </section>
-
-      {/* GitHub Token */}
-      <section>
-        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
-          <Github className="w-4 h-4" />
-          GitHub Token
-        </h2>
-        <GitHubTokenManager />
-      </section>
-
-      {/* GitLab Token */}
-      <section>
-        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
-          <Gitlab className="w-4 h-4" />
-          GitLab Token
-        </h2>
-        <GitLabTokenManager />
-      </section>
-
-      {/* Notifications */}
-      <section>
-        <h2 className="text-sm font-medium text-text-muted mb-3">Notifications</h2>
-        <NotificationPreferences />
       </section>
 
       {/* Ticket Sync */}
@@ -2189,6 +2161,12 @@ export default function SettingsPage() {
         <MarketplaceSkills />
       </section>
 
+      {/* Notifications */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3">Notifications</h2>
+        <NotificationPreferences />
+      </section>
+
       {/* Prompt Template */}
       <section>
         <h2 className="text-sm font-medium text-text-muted mb-3">Default Agent Prompt Template</h2>
@@ -2199,6 +2177,15 @@ export default function SettingsPage() {
       <section>
         <h2 className="text-sm font-medium text-text-muted mb-3">Default Code Review Agent</h2>
         <DefaultReviewEditor />
+      </section>
+
+      {/* Assistance Agent Settings */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Bot className="w-4 h-4" />
+          Assistance Agent Settings
+        </h2>
+        <OptioAgentSettings />
       </section>
     </div>
   );
