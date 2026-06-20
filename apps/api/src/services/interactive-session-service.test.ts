@@ -43,6 +43,15 @@ vi.mock("./repo-pool-service.js", () => ({
   getOrCreateRepoPod: vi.fn(),
 }));
 
+vi.mock("./secret-service.js", () => ({
+  resolveSecretsForSetup: vi.fn().mockResolvedValue({}),
+  resolveSecretsForTask: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock("./github-app-service.js", () => ({
+  isGitHubAppConfigured: vi.fn().mockReturnValue(false),
+}));
+
 vi.mock("../logger.js", () => ({
   logger: {
     info: vi.fn(),
@@ -60,9 +69,15 @@ vi.mock("../routes/github-app.js", () => ({
   getCredentialSecret: vi.fn().mockReturnValue("test-secret"),
 }));
 
+vi.mock("./github-token-service.js", () => ({
+  getGitHubToken: vi.fn().mockResolvedValue("ghp_token"),
+}));
+
 import { db } from "../db/client.js";
 import { publishEvent, publishSessionEvent } from "./event-bus.js";
 import { getOrCreateRepoPod } from "./repo-pool-service.js";
+import { resolveSecretsForSetup } from "./secret-service.js";
+import { isGitHubAppConfigured } from "./github-app-service.js";
 import {
   createSession,
   getSession,
@@ -192,6 +207,82 @@ describe("interactive-session-service", () => {
       expect(env.OPTIO_GIT_CREDENTIAL_URL).toBeDefined();
       expect(env.OPTIO_GIT_CREDENTIAL_URL).toContain("/api/internal/git-credentials");
       expect(env.OPTIO_CREDENTIAL_SECRET).toBe("test-secret");
+    });
+
+    it("injects setup secrets and repo config into pod env", async () => {
+      (db.select as any) = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            {
+              defaultBranch: "main",
+              extraPackages: "curl jq",
+              setupCommands: "echo 'hello'",
+            },
+          ]),
+        }),
+      });
+
+      vi.mocked(resolveSecretsForSetup).mockResolvedValue({
+        SSH_KEY: "mock-ssh-key",
+      });
+
+      vi.mocked(getOrCreateRepoPod).mockResolvedValue({
+        id: "pod-1",
+        podName: "pod-1",
+      } as any);
+
+      (db.insert as any) = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi
+            .fn()
+            .mockResolvedValue([{ id: "session-1", state: "active", podId: "pod-1" }]),
+        }),
+      });
+
+      await createSession({
+        repoUrl: "https://github.com/o/r",
+        workspaceId: "ws-1",
+      });
+
+      expect(resolveSecretsForSetup).toHaveBeenCalledWith("https://github.com/o/r", "ws-1");
+
+      const callArgs = vi.mocked(getOrCreateRepoPod).mock.calls[0];
+      const env = callArgs[2];
+      const opts = callArgs[4];
+
+      expect(env.SSH_KEY).toBe("mock-ssh-key");
+      expect(env.OPTIO_EXTRA_PACKAGES).toBe("curl jq");
+      expect(env.OPTIO_SETUP_COMMANDS).toBe("echo 'hello'");
+      expect(opts?.workspaceId).toBe("ws-1");
+    });
+
+    it("removes GITHUB_TOKEN if GitHub App is configured", async () => {
+      (db.select as any) = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([]),
+        }),
+      });
+
+      vi.mocked(isGitHubAppConfigured).mockReturnValue(true);
+
+      vi.mocked(getOrCreateRepoPod).mockResolvedValue({
+        id: "pod-1",
+        podName: "pod-1",
+      } as any);
+
+      (db.insert as any) = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi
+            .fn()
+            .mockResolvedValue([{ id: "session-1", state: "active", podId: "pod-1" }]),
+        }),
+      });
+
+      await createSession({ repoUrl: "https://github.com/o/r" });
+
+      const callArgs = vi.mocked(getOrCreateRepoPod).mock.calls[0];
+      const env = callArgs[2];
+      expect(env.GITHUB_TOKEN).toBeUndefined();
     });
   });
 

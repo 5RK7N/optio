@@ -11,6 +11,8 @@ import {
 import { publishEvent, publishSessionEvent } from "./event-bus.js";
 import { InteractiveSessionState, normalizeRepoUrl, type PresetImageId } from "@optio/shared";
 import { getOrCreateRepoPod } from "./repo-pool-service.js";
+import { resolveSecretsForSetup } from "./secret-service.js";
+import { isGitHubAppConfigured } from "./github-app-service.js";
 import { logger } from "../logger.js";
 
 export async function createSession(input: {
@@ -50,6 +52,23 @@ export async function createSession(input: {
     // No token, that's fine
   }
 
+  // Inject secrets for setup commands (SSH_KEY, etc.)
+  const setupSecrets = await resolveSecretsForSetup(repoUrl, input.workspaceId);
+  Object.assign(env, setupSecrets);
+
+  // Inject repo-level setup config into pod env
+  if (repoConfig?.extraPackages) {
+    env.OPTIO_EXTRA_PACKAGES = repoConfig.extraPackages;
+  }
+  if (repoConfig?.setupCommands) {
+    env.OPTIO_SETUP_COMMANDS = repoConfig.setupCommands;
+  }
+
+  // Only inject static GITHUB_TOKEN when GitHub App is not configured
+  if (isGitHubAppConfigured() && env.GITHUB_TOKEN) {
+    delete env.GITHUB_TOKEN;
+  }
+
   const imageConfig = repoConfig
     ? { preset: (repoConfig.imagePreset ?? "base") as PresetImageId }
     : undefined;
@@ -61,6 +80,7 @@ export async function createSession(input: {
     cpuLimit: repoConfig?.cpuLimit,
     memoryRequest: repoConfig?.memoryRequest,
     memoryLimit: repoConfig?.memoryLimit,
+    workspaceId: input.workspaceId ?? undefined,
   });
 
   // Generate a short ID for the branch name
