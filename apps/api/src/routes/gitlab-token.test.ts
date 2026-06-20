@@ -38,10 +38,13 @@ describe("GET /api/gitlab-token/status", () => {
   });
 
   it("returns missing when no token is stored", async () => {
-    mockRetrieveSecret.mockRejectedValue(new Error("Secret not found"));
+    mockRetrieveSecret.mockImplementation((name) => {
+      if (name === "GITLAB_HOST") return Promise.resolve("gitlab.internal.com");
+      return Promise.reject(new Error("Secret not found"));
+    });
     const res = await app.inject({ method: "GET", url: "/api/gitlab-token/status" });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({ status: "missing" });
+    expect(res.json()).toMatchObject({ status: "missing", host: "gitlab.internal.com" });
   });
 
   it("returns valid and user info when token works", async () => {
