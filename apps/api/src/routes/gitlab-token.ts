@@ -65,6 +65,14 @@ export async function gitlabTokenRoutes(rawApp: FastifyInstance) {
     async (_req, reply) => {
       let token: string | null = null;
       let host: string = "gitlab.com";
+
+      try {
+        const storedHost = await retrieveSecret("GITLAB_HOST");
+        if (storedHost) host = storedHost;
+      } catch {
+        // default to gitlab.com
+      }
+
       try {
         token = await retrieveSecret("GITLAB_TOKEN");
       } catch {
@@ -74,15 +82,9 @@ export async function gitlabTokenRoutes(rawApp: FastifyInstance) {
       if (!token) {
         return reply.send({
           status: "missing",
+          host,
           message: "No GitLab token configured.",
         });
-      }
-
-      try {
-        const storedHost = await retrieveSecret("GITLAB_HOST");
-        if (storedHost) host = storedHost;
-      } catch {
-        // default to gitlab.com
       }
 
       try {
@@ -101,6 +103,7 @@ export async function gitlabTokenRoutes(rawApp: FastifyInstance) {
 
         return reply.send({
           status: "error",
+          host,
           error: `GitLab returned ${res.status} — token may be expired or revoked`,
           message: "Replace your GitLab token to restore integration features.",
         });
@@ -108,6 +111,7 @@ export async function gitlabTokenRoutes(rawApp: FastifyInstance) {
         app.log.error(err, "GitLab token validation failed");
         return reply.send({
           status: "error",
+          host,
           error: "Could not reach GitLab API to validate token",
         });
       }
