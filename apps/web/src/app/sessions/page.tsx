@@ -21,7 +21,12 @@ export default function SessionsPage() {
   useEffect(() => {
     api
       .listRepos()
-      .then((res) => setRepos(res.repos))
+      .then((res) => {
+        setRepos(res.repos);
+        if (res.repos.length === 1) {
+          setSelectedRepo(res.repos[0].repoUrl);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -30,7 +35,6 @@ export default function SessionsPage() {
     api
       .listSessions({
         state: filter === "all" ? undefined : filter,
-        repoUrl: selectedRepo || undefined,
       })
       .then((res) => {
         setSessions(res.sessions);
@@ -38,14 +42,14 @@ export default function SessionsPage() {
       })
       .catch(() => toast.error("Failed to load sessions"))
       .finally(() => setLoading(false));
-  }, [filter, selectedRepo]);
+  }, [filter]);
 
   const handleCreate = async () => {
     if (repos.length === 0) {
       toast.error("Add a repo first");
       return;
     }
-    const repoUrl = selectedRepo || repos[0]?.repoUrl;
+    const repoUrl = repos.length === 1 ? repos[0].repoUrl : selectedRepo;
     if (!repoUrl) return;
     setCreating(true);
     try {
@@ -101,7 +105,7 @@ export default function SessionsPage() {
                 onChange={(e) => setSelectedRepo(e.target.value)}
                 className="px-3 py-2 rounded-lg bg-bg-card border border-border text-sm focus:outline-none focus:border-primary"
               >
-                <option value="">All repos</option>
+                <option value="">---</option>
                 {repos.map((r: any) => (
                   <option key={r.id} value={r.repoUrl}>
                     {r.fullName}
@@ -111,7 +115,7 @@ export default function SessionsPage() {
             )}
             <button
               onClick={handleCreate}
-              disabled={creating || repos.length === 0}
+              disabled={creating || repos.length === 0 || (repos.length > 1 && !selectedRepo)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors disabled:opacity-50"
             >
               {creating ? (
