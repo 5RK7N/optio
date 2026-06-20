@@ -1952,19 +1952,6 @@ export default function SettingsPage() {
     <div className="p-6 max-w-3xl mx-auto space-y-8">
       <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
 
-      {/* Git Platform Tokens */}
-      <section>
-        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
-          <KeyRound className="w-4 h-4" />
-          Git Platform Tokens
-        </h2>
-        <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-6">
-          <GitHubTokenManager />
-          <div className="border-t border-border/50" />
-          <GitLabTokenManager />
-        </div>
-      </section>
-
       {/* Authentication */}
       <section>
         <h2 className="text-sm font-medium text-text-muted mb-3">Authentication</h2>
@@ -1975,6 +1962,18 @@ export default function SettingsPage() {
       <section>
         <h2 className="text-sm font-medium text-text-muted mb-3">Passkey</h2>
         <PasskeySettings />
+      </section>
+
+      {/* Git Platform Tokens */}
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <KeyRound className="w-4 h-4" />
+          Git Platform Tokens
+        </h2>
+        <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-6">
+          <GitHubTokenManager />
+          <GitLabTokenManager />
+        </div>
       </section>
 
       {/* Ticket Sync */}
