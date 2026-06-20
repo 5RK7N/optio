@@ -1,4 +1,4 @@
-
+/* eslint-disable no-restricted-globals */
 
 /**
  * Optio Service Worker — handles Web Push notifications.
