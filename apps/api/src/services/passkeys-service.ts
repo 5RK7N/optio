@@ -39,7 +39,9 @@ function getRpID() {
 }
 
 function getOrigin() {
-  return process.env.PUBLIC_URL || "http://localhost:3100";
+  if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL;
+  // Local dev fallback. The web app runs on 3100 (next dev) or 30310 (local k8s nodePort).
+  return ["http://localhost:3100", "http://localhost:30310", "http://localhost:3000"];
 }
 
 export function isPasskeysEnabled() {

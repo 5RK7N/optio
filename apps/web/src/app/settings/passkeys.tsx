@@ -59,7 +59,22 @@ export function PasskeySettings() {
   };
 
   if (loading) return null;
-  if (!passkeysEnabled) return null;
+
+  if (!passkeysEnabled) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card/50 opacity-60">
+        <div className="flex items-center gap-3">
+          <KeyRound className="w-5 h-5 text-text-muted" />
+          <div>
+            <p className="text-sm font-medium">Passkeys are disabled</p>
+            <p className="text-xs text-text-muted">
+              Enable passkeys in your environment with <code>OPTIO_ENABLE_PASSKEYS=true</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-4">

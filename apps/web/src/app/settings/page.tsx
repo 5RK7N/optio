@@ -1,5 +1,4 @@
 "use client";
-import { PasskeySettings } from "./passkeys";
 
 import { useState, useEffect } from "react";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -37,6 +36,7 @@ import {
 } from "@optio/shared";
 import { NotificationPreferences } from "@/components/notifications/notification-preferences";
 import { ReviewAgentPicker } from "@/components/review-agent-picker";
+import { PasskeySettings } from "./passkeys";
 
 function PromptTemplateEditor() {
   const [template, setTemplate] = useState("");
@@ -1976,7 +1976,10 @@ export default function SettingsPage() {
       </section>
 
       {/* Passkeys */}
-      <PasskeySettings />
+      <section>
+        <h2 className="text-sm font-medium text-text-muted mb-3">Passkey</h2>
+        <PasskeySettings />
+      </section>
 
       {/* GitHub Token */}
       <section>
