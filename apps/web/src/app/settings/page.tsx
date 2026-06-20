@@ -1400,49 +1400,48 @@ function AuthenticationSettings() {
         </p>
 
         <div className="space-y-2">
-          {(["github", "google", "gitlab", "oidc"] as const).map((name) => {
-            const enabled = providers.some((p) => p.name === name);
-            const provider = providers.find((p) => p.name === name);
-            const displayName =
-              provider?.displayName ||
-              (name === "github"
-                ? "GitHub"
-                : name === "google"
-                  ? "Google"
-                  : name === "gitlab"
-                    ? "GitLab"
-                    : "OIDC");
-            const envPrefix = name.toUpperCase();
-            return (
-              <div
-                key={name}
-                className="flex items-center justify-between p-3 rounded-lg border border-border"
-              >
-                <div className="flex items-center gap-3">
-                  {enabled ? (
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-text-muted/40 shrink-0" />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium">{displayName}</p>
-                    <p className="text-[10px] text-text-muted">
-                      {name === "oidc"
-                        ? "OIDC_ISSUER_URL / OIDC_CLIENT_ID / OIDC_CLIENT_SECRET / OIDC_DISPLAY_NAME / OIDC_SCOPES"
-                        : `${envPrefix}_OAUTH_CLIENT_ID / ${envPrefix}_OAUTH_CLIENT_SECRET`}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full ${
-                    enabled ? "bg-success/10 text-success" : "bg-text-muted/10 text-text-muted"
-                  }`}
+          {(["github", "google", "gitlab", "oidc"] as const)
+            .filter((name) => providers.some((p) => p.name === name))
+            .map((name) => {
+              const provider = providers.find((p) => p.name === name);
+              const displayName =
+                provider?.displayName ||
+                (name === "github"
+                  ? "GitHub"
+                  : name === "google"
+                    ? "Google"
+                    : name === "gitlab"
+                      ? "GitLab"
+                      : "OIDC");
+              const envPrefix = name.toUpperCase();
+              return (
+                <div
+                  key={name}
+                  className="flex items-center justify-between p-3 rounded-lg border border-border"
                 >
-                  {enabled ? "Configured" : "Not configured"}
-                </span>
-              </div>
-            );
-          })}
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">{displayName}</p>
+                      <p className="text-[10px] text-text-muted">
+                        {name === "oidc"
+                          ? "OIDC_ISSUER_URL / OIDC_CLIENT_ID / OIDC_CLIENT_SECRET / OIDC_DISPLAY_NAME / OIDC_SCOPES"
+                          : `${envPrefix}_OAUTH_CLIENT_ID / ${envPrefix}_OAUTH_CLIENT_SECRET`}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/10 text-success">
+                    Configured
+                  </span>
+                </div>
+              );
+            })}
+
+          {providers.length === 0 && !authDisabled && (
+            <p className="text-xs text-text-muted text-center py-4 border border-dashed border-border rounded-lg">
+              No OAuth providers configured.
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -1526,19 +1525,19 @@ function OptioAgentSettings() {
       <div>
         <label className="block text-xs font-medium text-text-muted mb-1">Model</label>
         <select
-          value={model}
+          value={resolveModelId("anthropic", model)}
           onChange={(e) => setModel(e.target.value)}
           className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
         >
-          {Object.keys(ANTHROPIC_CATALOG.aliases).map((alias) => {
-            const id = resolveModelId("anthropic", alias);
-            const label = ANTHROPIC_CATALOG.models.find((m) => m.id === id)?.label ?? alias;
-            return (
-              <option key={alias} value={alias}>
-                {label}
-              </option>
-            );
-          })}
+          {!model && <option value="">Default</option>}
+          {ANTHROPIC_CATALOG.models.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.label}
+              {m.latest ? " (latest)" : ""}
+              {m.preview ? " (Preview)" : ""}
+              {m.source === "live" ? " •" : ""}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -1975,6 +1974,9 @@ export default function SettingsPage() {
         <h2 className="text-sm font-medium text-text-muted mb-3">Authentication</h2>
         <AuthenticationSettings />
       </section>
+
+      {/* Passkeys */}
+      <PasskeySettings />
 
       {/* GitHub Token */}
       <section>
