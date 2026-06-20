@@ -468,6 +468,7 @@ export const interactiveSessions = pgTable(
     podId: uuid("pod_id"),
     costUsd: text("cost_usd"),
     workspaceId: uuid("workspace_id"),
+    agentModel: text("agent_model").notNull().default("sonnet"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
   },

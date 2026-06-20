@@ -107,7 +107,7 @@ describe("GET /api/sessions/:id", () => {
     app = await buildTestApp();
   });
 
-  it("returns session with model config", async () => {
+  it("returns session with agentModel", async () => {
     mockGetSession.mockResolvedValue(mockSession);
     mockDbSelect.mockResolvedValue([{ claudeModel: "opus" }]);
 
@@ -118,10 +118,7 @@ describe("GET /api/sessions/:id", () => {
     // Response body has Dates serialized to ISO strings — just check key fields
     expect(body.session.id).toBe(mockSession.id);
     expect(body.session.repoUrl).toBe(mockSession.repoUrl);
-    expect(body.modelConfig).toEqual({
-      claudeModel: "opus",
-      availableModels: ["haiku", "sonnet", "opus"],
-    });
+    expect(body.session.agentModel).toBe("sonnet");
   });
 
   it("returns 404 for nonexistent session", async () => {
@@ -142,15 +139,6 @@ describe("GET /api/sessions/:id", () => {
     expect(res.json().error).toBe("Session not found");
   });
 
-  it("returns default model config when repo lookup fails", async () => {
-    mockGetSession.mockResolvedValue(mockSession);
-    mockDbSelect.mockRejectedValue(new Error("DB error"));
-
-    const res = await app.inject({ method: "GET", url: "/api/sessions/session-1" });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.json().modelConfig).toBeNull();
-  });
 });
 
 describe("POST /api/sessions", () => {

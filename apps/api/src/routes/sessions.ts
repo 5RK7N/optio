@@ -64,9 +64,8 @@ const SessionListResponseSchema = z
 const SessionDetailResponseSchema = z
   .object({
     session: InteractiveSessionSchema,
-    modelConfig: SessionModelConfigSchema.nullable(),
   })
-  .describe("Session + repo model configuration");
+  .describe("Session detail response");
 
 const SessionResponseSchema = z
   .object({
@@ -220,21 +219,7 @@ export async function sessionRoutes(rawApp: FastifyInstance) {
         return reply.status(404).send({ error: "Session not found" });
       }
 
-      let modelConfig: { claudeModel: string; availableModels: string[] } | null = null;
-      try {
-        const [repoConfig] = await db
-          .select()
-          .from(repos)
-          .where(eq(repos.repoUrl, session.repoUrl));
-        modelConfig = {
-          claudeModel: repoConfig?.claudeModel ?? "sonnet",
-          availableModels: ["haiku", "sonnet", "opus"],
-        };
-      } catch {
-        // Non-critical
-      }
-
-      reply.send({ session, modelConfig });
+      reply.send({ session });
     },
   );
 
