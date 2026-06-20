@@ -30,11 +30,11 @@ export const InteractiveSessionSchema = z
 
 export const SessionModelConfigSchema = z
   .object({
-    claudeModel: z.string(),
-    availableModels: z.array(z.string()),
+    agentRuntime: z.string(),
+    model: z.string(),
   })
   .passthrough()
-  .describe("Repo-configured Claude model + available choices");
+  .describe("Session-configured agent runtime and model");
 
 export const SessionPrSchema = z
   .object({

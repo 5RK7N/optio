@@ -945,7 +945,8 @@ export const optioSettings = pgTable(
   "optio_settings",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    model: text("model").notNull().default("sonnet"), // "opus" | "sonnet" | "haiku"
+    agentRuntime: text("agent_runtime").notNull().default("claude-code"),
+    model: text("model").notNull().default("sonnet"), // "opus" | "sonnet" | "haiku", but can be any string now
     systemPrompt: text("system_prompt").notNull().default(""), // custom additions appended to base prompt
     enabledTools: jsonb("enabled_tools").$type<string[]>().notNull().default([]), // empty = all enabled
     confirmWrites: boolean("confirm_writes").notNull().default(true),

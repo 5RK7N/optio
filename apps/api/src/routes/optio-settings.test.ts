@@ -154,14 +154,14 @@ describe("PUT /api/optio/settings", () => {
     expect(res.json().settings.confirmWrites).toBe(false);
   });
 
-  it("rejects invalid model", async () => {
+  it("accepts any string model (no longer restricted to Anthropic aliases)", async () => {
     const res = await app.inject({
       method: "PUT",
       url: "/api/optio/settings",
       payload: { model: "gpt-4" },
     });
 
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(200);
   });
 
   it("rejects maxTurns below 5", async () => {

@@ -1,6 +1,7 @@
 export interface OptioSettings {
   id: string;
-  model: string; // "opus" | "sonnet" | "haiku"
+  agentRuntime: string;
+  model: string;
   systemPrompt: string;
   enabledTools: string[];
   confirmWrites: boolean;
@@ -19,6 +20,7 @@ export interface OptioSettings {
 }
 
 export interface UpdateOptioSettingsInput {
+  agentRuntime?: string;
   model?: string;
   systemPrompt?: string;
   enabledTools?: string[];

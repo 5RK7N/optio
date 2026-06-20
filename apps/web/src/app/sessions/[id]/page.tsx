@@ -42,16 +42,14 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const [session, setSession] = useState<any>(null);
   const [modelConfig, setModelConfig] = useState<{
-    claudeModel: string;
-    availableModels: string[];
+    agentRuntime: string;
+    model: string;
   } | null>(null);
   const [prs, setPrs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [ending, setEnding] = useState(false);
   const [showEndWarning, setShowEndWarning] = useState(false);
   const [liveCost, setLiveCost] = useState<number>(0);
-  const [selectedModel, setSelectedModel] = useState<string>("");
-  const [showModelDropdown, setShowModelDropdown] = useState(false);
 
   // Ref for "send to agent" handler
   const sendToAgentRef = useRef<((text: string) => void) | null>(null);
@@ -62,9 +60,6 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
       setSession(sessionRes.session);
       if ((sessionRes as any).modelConfig) {
         setModelConfig((sessionRes as any).modelConfig);
-        if (!selectedModel) {
-          setSelectedModel((sessionRes as any).modelConfig.claudeModel ?? "sonnet");
-        }
       }
       setPrs(prsRes.prs);
       // Initialize live cost from session record
@@ -188,42 +183,11 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
               </span>
             )}
 
-            {/* Model selector */}
+            {/* Model indicator */}
             {isActive && modelConfig && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowModelDropdown(!showModelDropdown)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-bg-card border border-border text-text-muted hover:text-text transition-colors"
-                >
-                  <Bot className="w-3 h-3" />
-                  {selectedModel}
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-                {showModelDropdown && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowModelDropdown(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-1 z-50 bg-bg-card border border-border rounded-lg shadow-lg py-1 min-w-[120px]">
-                      {modelConfig.availableModels.map((m) => (
-                        <button
-                          key={m}
-                          onClick={() => {
-                            setSelectedModel(m);
-                            setShowModelDropdown(false);
-                          }}
-                          className={cn(
-                            "w-full text-left px-3 py-1.5 text-xs hover:bg-bg transition-colors",
-                            m === selectedModel && "text-primary font-medium",
-                          )}
-                        >
-                          {m}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-bg-card border border-border text-text-muted">
+                <Bot className="w-3 h-3" />
+                <span>{modelConfig.model}</span>
               </div>
             )}
 

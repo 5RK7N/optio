@@ -1160,6 +1160,7 @@ export const api = {
   getOptioSettings: () => request<{ settings: any }>("/api/optio/settings"),
 
   updateOptioSettings: (data: {
+    agentRuntime?: string;
     model?: string;
     systemPrompt?: string;
     enabledTools?: string[];

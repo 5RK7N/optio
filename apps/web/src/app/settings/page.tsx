@@ -31,8 +31,6 @@ import {
 import {
   OPTIO_TOOL_CATEGORIES,
   ALL_OPTIO_TOOL_NAMES,
-  ANTHROPIC_CATALOG,
-  resolveModelId,
   type AgentType,
 } from "@optio/shared";
 import { NotificationPreferences } from "@/components/notifications/notification-preferences";
@@ -1450,6 +1448,7 @@ function AuthenticationSettings() {
 }
 
 function OptioAgentSettings() {
+  const [agentRuntime, setAgentRuntime] = useState<AgentType | null>("claude-code");
   const [model, setModel] = useState("sonnet");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [enabledTools, setEnabledTools] = useState<string[]>([...ALL_OPTIO_TOOL_NAMES]);
@@ -1464,6 +1463,7 @@ function OptioAgentSettings() {
       .getOptioSettings()
       .then((res) => {
         const s = res.settings;
+        setAgentRuntime(s.agentRuntime as AgentType | null);
         setModel(s.model);
         setSystemPrompt(s.systemPrompt);
         // Empty array means "all enabled" (default state)
@@ -1487,6 +1487,7 @@ function OptioAgentSettings() {
       // If all tools are enabled, store empty array (meaning "all")
       const toolsToSave = enabledTools.length === ALL_OPTIO_TOOL_NAMES.length ? [] : enabledTools;
       await api.updateOptioSettings({
+        agentRuntime: agentRuntime ?? "claude-code",
         model,
         systemPrompt,
         enabledTools: toolsToSave.length === 0 ? ALL_OPTIO_TOOL_NAMES : toolsToSave,
@@ -1522,25 +1523,14 @@ function OptioAgentSettings() {
 
   return (
     <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-5">
-      {/* Model Selection */}
-      <div>
-        <label className="block text-xs font-medium text-text-muted mb-1">Model</label>
-        <select
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg bg-bg border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-        >
-          {Object.keys(ANTHROPIC_CATALOG.aliases).map((alias) => {
-            const id = resolveModelId("anthropic", alias);
-            const label = ANTHROPIC_CATALOG.models.find((m) => m.id === id)?.label ?? alias;
-            return (
-              <option key={alias} value={alias}>
-                {label}
-              </option>
-            );
-          })}
-        </select>
-      </div>
+      {/* Agent & Model Selection */}
+      <ReviewAgentPicker
+        agentType={agentRuntime}
+        onAgentTypeChange={setAgentRuntime}
+        model={model}
+        onModelChange={setModel}
+        allowInherit={false}
+      />
 
       {/* System Prompt */}
       <div>

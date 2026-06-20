@@ -1,11 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import * as sessionService from "../services/interactive-session-service.js";
 import { db } from "../db/client.js";
-import { repos } from "../db/schema.js";
+import { repos, optioSettings } from "../db/schema.js";
 import { logAction } from "../services/optio-action-service.js";
+import { resolveModelId, providerForAgentType } from "@optio/shared";
 import { ErrorResponseSchema, IdParamsSchema } from "../schemas/common.js";
 import {
   InteractiveSessionSchema,
@@ -220,15 +221,28 @@ export async function sessionRoutes(rawApp: FastifyInstance) {
         return reply.status(404).send({ error: "Session not found" });
       }
 
-      let modelConfig: { claudeModel: string; availableModels: string[] } | null = null;
+      let modelConfig: { agentRuntime: string; model: string } | null = null;
       try {
-        const [repoConfig] = await db
+        // First try workspace settings for global defaults (as Optio chat relies on it)
+        const [globalSettings] = await db
           .select()
-          .from(repos)
-          .where(eq(repos.repoUrl, session.repoUrl));
+          .from(optioSettings)
+          .where(
+            req.user?.workspaceId
+              ? eq(optioSettings.workspaceId, req.user.workspaceId)
+              : isNull(optioSettings.workspaceId)
+          )
+          .limit(1);
+
+        const runtime = globalSettings?.agentRuntime ?? "claude-code";
+        const rawModel = globalSettings?.model ?? "sonnet";
+
+        const providerId = providerForAgentType(runtime);
+        const resolvedModel = resolveModelId(providerId, rawModel) ?? rawModel;
+
         modelConfig = {
-          claudeModel: repoConfig?.claudeModel ?? "sonnet",
-          availableModels: ["haiku", "sonnet", "opus"],
+          agentRuntime: runtime,
+          model: resolvedModel,
         };
       } catch {
         // Non-critical

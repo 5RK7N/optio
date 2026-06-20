@@ -32,7 +32,9 @@ vi.mock("../db/client.js", () => ({
   db: {
     select: () => ({
       from: () => ({
-        where: (...args: unknown[]) => mockDbSelect(...args),
+        where: () => ({
+          limit: (...args: unknown[]) => mockDbSelect(...args),
+        }),
       }),
     }),
   },
@@ -40,6 +42,7 @@ vi.mock("../db/client.js", () => ({
 
 vi.mock("../db/schema.js", () => ({
   repos: { repoUrl: "repoUrl" },
+  optioSettings: { workspaceId: "workspaceId" },
 }));
 
 import { sessionRoutes } from "./sessions.js";
@@ -109,7 +112,8 @@ describe("GET /api/sessions/:id", () => {
 
   it("returns session with model config", async () => {
     mockGetSession.mockResolvedValue(mockSession);
-    mockDbSelect.mockResolvedValue([{ claudeModel: "opus" }]);
+    // Return mock optioSettings
+    mockDbSelect.mockResolvedValue([{ agentRuntime: "claude-code", model: "opus" }]);
 
     const res = await app.inject({ method: "GET", url: "/api/sessions/session-1" });
 
@@ -119,8 +123,8 @@ describe("GET /api/sessions/:id", () => {
     expect(body.session.id).toBe(mockSession.id);
     expect(body.session.repoUrl).toBe(mockSession.repoUrl);
     expect(body.modelConfig).toEqual({
-      claudeModel: "opus",
-      availableModels: ["haiku", "sonnet", "opus"],
+      agentRuntime: "claude-code",
+      model: "claude-opus-4-7", // opus resolves to claude-opus-4-7 for anthropic provider
     });
   });
 

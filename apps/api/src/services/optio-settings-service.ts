@@ -32,6 +32,7 @@ export async function getSettings(workspaceId?: string | null): Promise<OptioSet
   // Return defaults (no row in DB yet)
   return {
     id: "",
+    agentRuntime: "claude-code",
     model: "sonnet",
     systemPrompt: "",
     enabledTools: [],
@@ -65,6 +66,7 @@ export async function upsertSettings(
   if (existing) {
     // Update existing row
     const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (input.agentRuntime !== undefined) updates.agentRuntime = input.agentRuntime;
     if (input.model !== undefined) updates.model = input.model;
     if (input.systemPrompt !== undefined) updates.systemPrompt = input.systemPrompt;
     if (input.enabledTools !== undefined) updates.enabledTools = input.enabledTools;
@@ -86,6 +88,7 @@ export async function upsertSettings(
     const [row] = await db
       .insert(optioSettings)
       .values({
+        agentRuntime: input.agentRuntime ?? "claude-code",
         model: input.model ?? "sonnet",
         systemPrompt: input.systemPrompt ?? "",
         enabledTools: input.enabledTools ?? [],
@@ -103,6 +106,7 @@ export async function upsertSettings(
 function mapRow(row: typeof optioSettings.$inferSelect): OptioSettings {
   return {
     id: row.id,
+    agentRuntime: row.agentRuntime,
     model: row.model,
     systemPrompt: row.systemPrompt,
     enabledTools: row.enabledTools,

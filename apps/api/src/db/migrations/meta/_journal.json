@@ -554,6 +554,13 @@
       "when": 1781440576129,
       "tag": "1777500000_add_passkeys",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1781948394572,
+      "tag": "1781948394_optio_settings_agent_runtime",
+      "breakpoints": true
     }
   ]
 }

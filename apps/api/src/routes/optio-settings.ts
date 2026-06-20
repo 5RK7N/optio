@@ -8,10 +8,11 @@ import { ErrorResponseSchema } from "../schemas/common.js";
 
 const updateSettingsSchema = z
   .object({
+    agentRuntime: z.string().optional().describe("Agent runtime for the Optio assistant"),
     model: z
-      .enum(["opus", "sonnet", "haiku"])
+      .string()
       .optional()
-      .describe("Claude model for the Optio assistant"),
+      .describe("Model ID for the Optio assistant"),
     systemPrompt: z.string().optional(),
     enabledTools: z
       .array(z.string())

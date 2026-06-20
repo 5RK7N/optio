@@ -7,6 +7,7 @@ import {
   OPTIO_TOOL_SCHEMAS,
   OPTIO_TOOL_CATEGORIES,
   resolveModelId,
+  providerForAgentType,
   type OptioToolDefinition,
   type OptioToolSchema,
 } from "@optio/shared";
@@ -615,7 +616,8 @@ export async function optioChatWs(app: FastifyInstance) {
 
       // Load settings
       const settings = await getSettings(user.workspaceId);
-      const model = resolveModelId("anthropic", settings.model) ?? DEFAULT_MODEL;
+      const providerId = providerForAgentType(settings.agentRuntime);
+      const model = resolveModelId(providerId, settings.model) ?? DEFAULT_MODEL;
       const maxTurns = settings.maxTurns || DEFAULT_MAX_TURNS;
 
       // Build system prompt (tool definitions are passed separately to the API)
@@ -666,7 +668,8 @@ export async function optioChatWs(app: FastifyInstance) {
       }
 
       const settings = await getSettings(user.workspaceId);
-      const model = resolveModelId("anthropic", settings.model) ?? DEFAULT_MODEL;
+      const providerId = providerForAgentType(settings.agentRuntime);
+      const model = resolveModelId(providerId, settings.model) ?? DEFAULT_MODEL;
       const maxTurns = settings.maxTurns || DEFAULT_MAX_TURNS;
       const systemPrompt = buildSystemPrompt({
         systemPrompt: settings.systemPrompt,
