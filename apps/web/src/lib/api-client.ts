@@ -801,10 +801,10 @@ export const api = {
   getPasskeyStatus: () => request<{ enabled: boolean }>("/api/auth/passkey/status"),
   generatePasskeyRegistrationOptions: () =>
     request<any>("/api/auth/passkey/register/generate-options", { method: "POST" }),
-  verifyPasskeyRegistration: (response: any) =>
+  verifyPasskeyRegistration: (data: { name: string; response: any }) =>
     request<{ verified: boolean }>("/api/auth/passkey/register/verify", {
       method: "POST",
-      body: JSON.stringify(response),
+      body: JSON.stringify(data),
     }),
   generatePasskeyAuthenticationOptions: (email?: string) =>
     request<any>("/api/auth/passkey/login/generate-options", {

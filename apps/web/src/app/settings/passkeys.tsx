@@ -37,7 +37,10 @@ export function PasskeySettings() {
 
       const response = await startRegistration({ optionsJSON: options });
 
-      await api.verifyPasskeyRegistration(response);
+      const name = prompt("Enter a name for this passkey (e.g. MacBook, YubiKey)", "Passkey");
+      if (name === null) return; // User cancelled
+
+      await api.verifyPasskeyRegistration({ name, response });
 
       const { passkeys: pkList } = await api.listPasskeys();
       setPasskeys(pkList);

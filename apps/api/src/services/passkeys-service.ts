@@ -83,10 +83,14 @@ export async function verifyPasskeyRegistration(userId: string, body: any) {
     throw new Error("No active challenge found for user");
   }
 
+  // Support both direct response object (old) and wrapped { name, response } (new)
+  const registrationResponse = body.response || body;
+  const passkeyName = body.name || "Passkey";
+
   let verification;
   try {
     verification = await verifyRegistrationResponse({
-      response: body,
+      response: registrationResponse,
       expectedChallenge: user.currentChallenge,
       expectedOrigin: getOrigin(),
       expectedRPID: getRpID(),
@@ -113,12 +117,14 @@ export async function verifyPasskeyRegistration(userId: string, body: any) {
     await db.insert(passkeys).values({
       id: credentialID,
       userId,
-      name: "Passkey",
+      name: passkeyName,
       publicKey: Buffer.from(credentialPublicKey).toString("base64"),
       counter,
       deviceType: credentialDeviceType,
       backedUp: credentialBackedUp,
-      transports: body.response.transports ? body.response.transports.join(",") : null,
+      transports: registrationResponse.response?.transports
+        ? registrationResponse.response.transports.join(",")
+        : null,
     });
 
     return { verified: true };
