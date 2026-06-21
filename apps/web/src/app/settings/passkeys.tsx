@@ -60,7 +60,67 @@ export function PasskeySettings() {
 
   if (loading) return null;
 
-  if (!passkeysEnabled) {
+  if (passkeysEnabled) {
+    return (
+      <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-4">
+        <div>
+          <p className="text-sm font-medium">Passkeys</p>
+          <p className="text-xs text-text-muted">
+            Sign in securely using fingerprint, face recognition, or a hardware security key.
+          </p>
+        </div>
+
+        {error && (
+          <div className="p-2 rounded bg-error/5 border border-error/20 text-error text-xs">
+            {error}
+          </div>
+        )}
+
+        {passkeys.length > 0 ? (
+          <div className="space-y-2">
+            {passkeys.map((pk) => (
+              <div
+                key={pk.id}
+                className="flex items-center justify-between p-3 rounded-lg bg-bg border border-border/50"
+              >
+                <div className="flex items-center gap-3">
+                  <KeyRound className="w-5 h-5 text-text-muted" />
+                  <div>
+                    <p className="text-sm font-medium">{pk.name || "Passkey"}</p>
+                    <p className="text-xs text-text-muted">
+                      Added {new Date(pk.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeletePasskey(pk.id)}
+                  className="p-1.5 rounded hover:bg-error/10 text-text-muted hover:text-error transition-colors"
+                  title="Delete passkey"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-text-muted">No passkeys registered.</p>
+        )}
+
+        <button
+          onClick={handleRegisterPasskey}
+          disabled={registering}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors disabled:opacity-50"
+        >
+          {registering ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <Plus className="w-3 h-3" />
+          )}
+          Add a Passkey
+        </button>
+      </div>
+    );
+  } else {
     return (
       <div className="p-5 rounded-xl border border-border/50 bg-bg-card/50 opacity-60">
         <div className="flex items-center gap-3">
@@ -68,67 +128,11 @@ export function PasskeySettings() {
           <div>
             <p className="text-sm font-medium">Passkeys are disabled</p>
             <p className="text-xs text-text-muted">
-              Enable passkeys in your environment with <code>OPTIO_ENABLE_PASSKEYS=true</code>.
+              Enable passkeys by removing <code>OPTIO_ENABLE_PASSKEYS=false</code>.
             </p>
           </div>
         </div>
       </div>
     );
   }
-
-  return (
-    <div className="p-5 rounded-xl border border-border/50 bg-bg-card space-y-4">
-      <div>
-        <p className="text-sm font-medium">Passkeys</p>
-        <p className="text-xs text-text-muted">
-          Sign in securely using fingerprint, face recognition, or a hardware security key.
-        </p>
-      </div>
-
-      {error && (
-        <div className="p-2 rounded bg-error/5 border border-error/20 text-error text-xs">
-          {error}
-        </div>
-      )}
-
-      {passkeys.length > 0 ? (
-        <div className="space-y-2">
-          {passkeys.map((pk) => (
-            <div
-              key={pk.id}
-              className="flex items-center justify-between p-3 rounded-lg bg-bg border border-border/50"
-            >
-              <div className="flex items-center gap-3">
-                <KeyRound className="w-5 h-5 text-text-muted" />
-                <div>
-                  <p className="text-sm font-medium">{pk.name || "Passkey"}</p>
-                  <p className="text-xs text-text-muted">
-                    Added {new Date(pk.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => handleDeletePasskey(pk.id)}
-                className="p-1.5 rounded hover:bg-error/10 text-text-muted hover:text-error transition-colors"
-                title="Delete passkey"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs text-text-muted">No passkeys registered.</p>
-      )}
-
-      <button
-        onClick={handleRegisterPasskey}
-        disabled={registering}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors disabled:opacity-50"
-      >
-        {registering ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-        Add a Passkey
-      </button>
-    </div>
-  );
 }

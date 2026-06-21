@@ -45,7 +45,7 @@ function getOrigin() {
 }
 
 export function isPasskeysEnabled() {
-  return process.env.OPTIO_ENABLE_PASSKEYS === "true";
+  return process.env.OPTIO_ENABLE_PASSKEYS !== "false";
 }
 
 export async function generatePasskeyRegistrationOptions(
