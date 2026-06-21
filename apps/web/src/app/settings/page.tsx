@@ -19,6 +19,10 @@ import {
   Shield,
   Gitlab,
   KeyRound,
+  Bell,
+  Fingerprint,
+  FileText,
+  Eye,
   ExternalLink,
   X,
   CheckCircle2,
@@ -1954,13 +1958,19 @@ export default function SettingsPage() {
 
       {/* Authentication */}
       <section>
-        <h2 className="text-sm font-medium text-text-muted mb-3">Authentication</h2>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Shield className="w-4 h-4" />
+          Authentication
+        </h2>
         <AuthenticationSettings />
       </section>
 
       {/* Passkeys */}
       <section>
-        <h2 className="text-sm font-medium text-text-muted mb-3">Passkey</h2>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Fingerprint className="w-4 h-4" />
+          Passkey
+        </h2>
         <PasskeySettings />
       </section>
 
@@ -2162,19 +2172,28 @@ export default function SettingsPage() {
 
       {/* Notifications */}
       <section>
-        <h2 className="text-sm font-medium text-text-muted mb-3">Notifications</h2>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Bell className="w-4 h-4" />
+          Notifications
+        </h2>
         <NotificationPreferences />
       </section>
 
       {/* Prompt Template */}
       <section>
-        <h2 className="text-sm font-medium text-text-muted mb-3">Default Agent Prompt Template</h2>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <FileText className="w-4 h-4" />
+          Default Agent Prompt Template
+        </h2>
         <PromptTemplateEditor />
       </section>
 
       {/* Default Code Review */}
       <section>
-        <h2 className="text-sm font-medium text-text-muted mb-3">Default Code Review Agent</h2>
+        <h2 className="text-sm font-medium text-text-muted mb-3 flex items-center gap-2">
+          <Eye className="w-4 h-4" />
+          Default Code Review Agent
+        </h2>
         <DefaultReviewEditor />
       </section>
 
