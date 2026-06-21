@@ -3,6 +3,7 @@ import { db } from "../db/client.js";
 import { users, sessions } from "../db/schema.js";
 import { eq, and, lt } from "drizzle-orm";
 import type { OAuthUser } from "./oauth/provider.js";
+import { getValidOIDCAccessToken } from "./oidc-token-service.js";
 
 const SESSION_MAX_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days absolute max
 const SESSION_SLIDING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days sliding window
@@ -129,6 +130,13 @@ export async function validateSession(token: string): Promise<SessionUser | null
     await db.update(sessions).set({ expiresAt: newExpiry }).where(eq(sessions.id, row.sessionId));
   }
 
+  // If this is an OIDC user, keep their provider session alive by refreshing if needed
+  if (row.provider === "oidc") {
+    // We don't block validation on this, just fire-and-forget or let it fail silently
+    // in the background. getValidOIDCAccessToken handles the refresh logic.
+    getValidOIDCAccessToken(row.userId).catch(() => {});
+  }
+
   return {
     id: row.userId,
     provider: row.provider,
@@ -140,10 +148,12 @@ export async function validateSession(token: string): Promise<SessionUser | null
   };
 }
 
-/** Revoke a session by token. */
-export async function revokeSession(token: string): Promise<void> {
+/** Revoke a session by token. Returns user info if it was a valid session. */
+export async function revokeSession(token: string): Promise<SessionUser | null> {
+  const user = await validateSession(token);
   const tokenHash = hashToken(token);
   await db.delete(sessions).where(eq(sessions.tokenHash, tokenHash));
+  return user;
 }
 
 /** Revoke all sessions for a user. */
@@ -261,14 +271,11 @@ export async function cleanupExpiredSessions(): Promise<number> {
 }
 
 export async function createSessionToken(userId: string): Promise<string> {
-  const { randomBytes, createHash } = await import("crypto");
   const token = randomBytes(32).toString("hex");
-  const tokenHash = createHash("sha256").update(token).digest("hex");
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(Date.now() + SESSION_SLIDING_WINDOW_MS);
 
   await db.insert(sessions).values({
-    id: token,
     userId,
     tokenHash,
     expiresAt,

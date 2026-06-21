@@ -26,10 +26,11 @@ vi.mock("../services/auth-service.js", () => ({
 }));
 
 let authDisabled = false;
+const mockGetOAuthProvider = vi.fn();
 vi.mock("../services/oauth/index.js", () => ({
   isAuthDisabled: () => authDisabled,
   getEnabledProviders: () => [],
-  getOAuthProvider: () => undefined,
+  getOAuthProvider: (...args: unknown[]) => mockGetOAuthProvider(...args),
 }));
 
 vi.mock("../plugins/auth.js", () => ({
@@ -60,6 +61,12 @@ vi.mock("../services/github-token-service.js", () => ({
   storeUserGitHubTokens: vi.fn(),
 }));
 
+const mockGetUserOIDCIdToken = vi.fn();
+vi.mock("../services/oidc-token-service.js", () => ({
+  storeUserOIDCTokens: vi.fn(),
+  getUserOIDCIdToken: (...args: unknown[]) => mockGetUserOIDCIdToken(...args),
+}));
+
 import { authRoutes } from "./auth.js";
 
 // ─── Helpers ───
@@ -83,6 +90,7 @@ describe("POST /api/auth/exchange-code", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockGetOAuthProvider.mockReset();
     redisStore.clear();
     authDisabled = false;
     app = await buildTestApp();
@@ -265,6 +273,7 @@ describe("POST /api/auth/logout", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockGetOAuthProvider.mockReset();
     redisStore.clear();
     authDisabled = false;
     app = await buildTestApp();
@@ -350,6 +359,33 @@ describe("POST /api/auth/logout", () => {
       process.env.NODE_ENV = origEnv;
     }
   });
+
+  it("returns logoutUrl for OIDC provider", async () => {
+    const oidcUser = { ...mockUser, provider: "oidc" };
+    mockRevokeSession.mockResolvedValue(oidcUser);
+    mockGetUserOIDCIdToken.mockResolvedValue("my-id-token");
+
+    mockGetOAuthProvider.mockReturnValue({
+      name: "oidc",
+      authorizeUrl: () => "",
+      exchangeCode: async () => ({ accessToken: "" }),
+      fetchUser: async () => ({}) as any,
+      logoutUrl: (hint?: string) => `https://auth.example.com/logout?hint=${hint}`,
+    });
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/logout",
+      headers: {
+        authorization: "Bearer oidc-token",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.ok).toBe(true);
+    expect(body.logoutUrl).toBe("https://auth.example.com/logout?hint=my-id-token");
+  });
 });
 
 describe("Auth rate limiting", () => {
@@ -357,6 +393,7 @@ describe("Auth rate limiting", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockGetOAuthProvider.mockReset();
     redisStore.clear();
     authDisabled = false;
   });

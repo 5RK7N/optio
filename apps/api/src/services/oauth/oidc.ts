@@ -7,6 +7,7 @@ interface OIDCDiscoveryDocument {
   token_endpoint: string;
   userinfo_endpoint: string;
   jwks_uri: string;
+  end_session_endpoint?: string;
 }
 
 const DISCOVERY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -126,6 +127,7 @@ export class GenericOIDCProvider implements OAuthProvider {
     return {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
+      idToken: data.id_token,
       expiresIn: data.expires_in,
     };
   }
@@ -146,5 +148,50 @@ export class GenericOIDCProvider implements OAuthProvider {
       displayName: data.name ?? data.preferred_username ?? "",
       avatarUrl: data.picture,
     };
+  }
+
+  async refreshTokens(refreshToken: string): Promise<OAuthTokens> {
+    const discovery = await this.discover();
+
+    const res = await fetch(discovery.token_endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`OIDC token refresh failed: ${res.status} ${res.statusText}`);
+    }
+
+    const data = (await res.json()) as Record<string, any>;
+    if (data.error) {
+      throw new Error(`OIDC OAuth refresh error: ${data.error_description ?? data.error}`);
+    }
+
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? refreshToken, // Use new refresh token if provided, else keep old
+      idToken: data.id_token,
+      expiresIn: data.expires_in,
+    };
+  }
+
+  logoutUrl(idToken?: string): string | null {
+    const endpoint = this.discoveryCache?.doc.end_session_endpoint;
+    if (!endpoint) return null;
+
+    const params = new URLSearchParams();
+    if (idToken) {
+      params.set("id_token_hint", idToken);
+    }
+    const postLogoutRedirect = process.env.PUBLIC_URL || "http://localhost:3000";
+    params.set("post_logout_redirect_uri", `${postLogoutRedirect}/login`);
+
+    return `${endpoint}?${params.toString()}`;
   }
 }

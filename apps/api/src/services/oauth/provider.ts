@@ -1,6 +1,7 @@
 export interface OAuthTokens {
   accessToken: string;
   refreshToken?: string;
+  idToken?: string;
   expiresIn?: number;
 }
 
@@ -18,6 +19,8 @@ export interface OAuthProvider {
   authorizeUrl(state: string): string;
   exchangeCode(code: string): Promise<OAuthTokens>;
   fetchUser(accessToken: string): Promise<OAuthUser>;
+  refreshTokens?(refreshToken: string): Promise<OAuthTokens>;
+  logoutUrl?(idToken?: string): string | null;
 }
 
 export function getCallbackUrl(provider: string): string {

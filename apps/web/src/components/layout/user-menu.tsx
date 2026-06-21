@@ -49,7 +49,11 @@ export function UserMenu() {
 
   const handleLogout = async () => {
     try {
-      await api.logout();
+      const res = await api.logout();
+      if (res?.logoutUrl) {
+        window.location.href = res.logoutUrl;
+        return;
+      }
     } catch {
       // best-effort
     }

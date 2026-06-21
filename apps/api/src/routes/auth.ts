@@ -21,6 +21,7 @@ import {
 } from "../services/session-service.js";
 import { createApiKey, listApiKeys, revokeApiKey } from "../services/api-key-service.js";
 import { storeUserGitHubTokens } from "../services/github-token-service.js";
+import { storeUserOIDCTokens, getUserOIDCIdToken } from "../services/oidc-token-service.js";
 import { SESSION_COOKIE_NAME } from "../plugins/auth.js";
 import { getRedisClient } from "../services/event-bus.js";
 import { ErrorResponseSchema, IdParamsSchema } from "../schemas/common.js";
@@ -482,6 +483,15 @@ export async function authRoutes(rawApp: FastifyInstance) {
           });
         }
 
+        // Store OIDC tokens for session persistence
+        if (providerName === "oidc" && tokens.accessToken) {
+          await storeUserOIDCTokens(session.user.id, {
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            expiresIn: tokens.expiresIn,
+          });
+        }
+
         // Check if this is a CLI flow (state contains a dot separator with cliState suffix)
         const dotIdx = state.indexOf(".");
         if (dotIdx > 0) {
@@ -884,7 +894,7 @@ export async function authRoutes(rawApp: FastifyInstance) {
           "Revoke the current session token and clear the session cookie. " +
           "Safe to call even when no session exists.",
         tags: ["Auth & Sessions"],
-        response: { 200: OkResponseSchema },
+        response: { 200: z.object({ ok: z.boolean(), logoutUrl: z.string().optional() }) },
       },
     },
     async (req, reply) => {
@@ -899,8 +909,19 @@ export async function authRoutes(rawApp: FastifyInstance) {
         token = match ? decodeURIComponent(match[1]) : undefined;
       }
 
+      let logoutUrl: string | undefined;
+
       if (token) {
-        await revokeSession(token);
+        const user = await revokeSession(token);
+
+        if (user?.provider === "oidc") {
+          const provider = getOAuthProvider("oidc");
+          if (provider?.logoutUrl) {
+            const idToken = await getUserOIDCIdToken(user.id);
+            const url = provider.logoutUrl(idToken ?? undefined);
+            if (url) logoutUrl = url;
+          }
+        }
       }
 
       const secure = process.env.NODE_ENV === "production" ? " Secure;" : "";
@@ -909,7 +930,7 @@ export async function authRoutes(rawApp: FastifyInstance) {
           "Set-Cookie",
           `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=0`,
         )
-        .send({ ok: true });
+        .send({ ok: true, logoutUrl });
     },
   );
 }

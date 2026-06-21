@@ -794,7 +794,8 @@ export const api = {
       authDisabled: boolean;
     }>("/api/auth/me"),
 
-  logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
+  logout: () =>
+    request<{ ok: boolean; logoutUrl?: string }>("/api/auth/logout", { method: "POST" }),
 
   // Passkeys
   getPasskeyStatus: () => request<{ enabled: boolean }>("/api/auth/passkey/status"),

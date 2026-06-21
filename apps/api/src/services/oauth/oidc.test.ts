@@ -337,6 +337,92 @@ describe("GenericOIDCProvider", () => {
       );
     });
   });
+
+  describe("refreshTokens()", () => {
+    it("refreshes tokens using the refresh_token grant", async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, "fetch")
+        // 1st call: discovery
+        .mockResolvedValueOnce(new Response(JSON.stringify(DISCOVERY_DOC), { status: 200 }))
+        // 2nd call: token refresh
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              access_token: "new-at-123",
+              refresh_token: "new-rt-456",
+              expires_in: 3600,
+            }),
+            { status: 200 },
+          ),
+        );
+
+      const provider = await createProvider();
+      const tokens = await provider.refreshTokens("old-rt-123");
+
+      expect(tokens.accessToken).toBe("new-at-123");
+      expect(tokens.refreshToken).toBe("new-rt-456");
+
+      const refreshCall = fetchSpy.mock.calls[1];
+      expect(refreshCall[0]).toBe(DISCOVERY_DOC.token_endpoint);
+      const body = new URLSearchParams(refreshCall[1]?.body as string);
+      expect(body.get("grant_type")).toBe("refresh_token");
+      expect(body.get("refresh_token")).toBe("old-rt-123");
+    });
+
+    it("uses old refresh token if provider doesn't return a new one", async () => {
+      vi.spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(new Response(JSON.stringify(DISCOVERY_DOC), { status: 200 }))
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              access_token: "new-at-123",
+              expires_in: 3600,
+            }),
+            { status: 200 },
+          ),
+        );
+
+      const provider = await createProvider();
+      const tokens = await provider.refreshTokens("old-rt-123");
+
+      expect(tokens.accessToken).toBe("new-at-123");
+      expect(tokens.refreshToken).toBe("old-rt-123");
+    });
+  });
+
+  describe("logoutUrl()", () => {
+    it("returns null if end_session_endpoint is missing from discovery", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(JSON.stringify(DISCOVERY_DOC), { status: 200 }),
+      );
+
+      const provider = await createProvider();
+      await provider.discover();
+
+      expect(provider.logoutUrl()).toBeNull();
+    });
+
+    it("returns correctly formed logout URL when endpoint is present", async () => {
+      const discoveryWithLogout = {
+        ...DISCOVERY_DOC,
+        end_session_endpoint: `${ISSUER_URL}/protocol/openid-connect/logout`,
+      };
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(JSON.stringify(discoveryWithLogout), { status: 200 }),
+      );
+
+      const provider = await createProvider();
+      await provider.discover();
+
+      const url = provider.logoutUrl("hint-token-123");
+      const parsed = new URL(url!);
+
+      expect(parsed.origin + parsed.pathname).toBe(discoveryWithLogout.end_session_endpoint);
+      expect(parsed.searchParams.get("id_token_hint")).toBe("hint-token-123");
+      expect(parsed.searchParams.get("post_logout_redirect_uri")).toContain("/login");
+    });
+  });
 });
 
 describe("OIDC provider registration", () => {
