@@ -265,6 +265,7 @@ export async function buildServer() {
   await app.register(ticketRoutes);
   await app.register(setupRoutes);
   await app.register(authRoutes);
+  await app.register(passkeysRoutes);
   await app.register(resumeRoutes);
   await app.register(promptTemplateRoutes);
   await app.register(repoRoutes);
