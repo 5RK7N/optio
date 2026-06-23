@@ -113,8 +113,9 @@ export async function sessionChatWs(app: FastifyInstance) {
     const workspaceId = req.user?.workspaceId ?? null;
     const optioSettings = await getSettings(workspaceId);
 
-    // Optio settings take precedence, then repo config, then default
-    let currentModel = optioSettings.model || repoConfig?.claudeModel || "sonnet";
+    // Inherited session model takes precedence, then global/repo defaults
+    const currentModel =
+      (session as any).claudeModel || repoConfig?.claudeModel || optioSettings.model || "sonnet";
 
     const rt = getRuntime();
     const handle = { id: pod.podId ?? pod.podName, name: pod.podName };
@@ -358,18 +359,6 @@ export async function sessionChatWs(app: FastifyInstance) {
             isProcessing = false;
             outputBuffer = "";
             send({ type: "status", status: "idle" });
-          }
-          break;
-
-        case "set_model":
-          if (msg.model) {
-            currentModel = msg.model;
-            log.info({ model: currentModel }, "Model changed");
-            send({
-              type: "status",
-              status: isProcessing ? "thinking" : "idle",
-              model: currentModel,
-            });
           }
           break;
 

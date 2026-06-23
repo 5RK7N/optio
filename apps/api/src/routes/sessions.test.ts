@@ -120,7 +120,7 @@ describe("GET /api/sessions/:id", () => {
     expect(body.session.repoUrl).toBe(mockSession.repoUrl);
     expect(body.modelConfig).toEqual({
       claudeModel: "opus",
-      availableModels: ["haiku", "sonnet", "opus"],
+      availableModels: [],
     });
   });
 

@@ -185,6 +185,7 @@ export const mockInteractiveSession = {
   podId: null,
   costUsd: null,
   workspaceId: "ws-1",
+  claudeModel: null,
   createdAt: new Date("2026-04-11T12:00:00Z"),
   endedAt: null,
 };

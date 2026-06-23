@@ -222,13 +222,17 @@ export async function sessionRoutes(rawApp: FastifyInstance) {
 
       let modelConfig: { claudeModel: string; availableModels: string[] } | null = null;
       try {
-        const [repoConfig] = await db
-          .select()
-          .from(repos)
-          .where(eq(repos.repoUrl, session.repoUrl));
+        let claudeModel = (session as any).claudeModel;
+        if (!claudeModel) {
+          const [repoConfig] = await db
+            .select()
+            .from(repos)
+            .where(eq(repos.repoUrl, session.repoUrl));
+          claudeModel = repoConfig?.claudeModel ?? "sonnet";
+        }
         modelConfig = {
-          claudeModel: repoConfig?.claudeModel ?? "sonnet",
-          availableModels: ["haiku", "sonnet", "opus"],
+          claudeModel,
+          availableModels: [], // Disables model picker in UI
         };
       } catch {
         // Non-critical

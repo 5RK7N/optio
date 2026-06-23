@@ -22,6 +22,10 @@ export const InteractiveSessionSchema = z
     podId: z.string().nullable().describe("Pod ID backing this session"),
     costUsd: z.string().nullable().describe("Aggregate cost in USD (decimal string)"),
     workspaceId: z.string().nullable(),
+    claudeModel: z
+      .string()
+      .nullable()
+      .describe("Inherited Claude model from repository's settings"),
     createdAt: z.date(),
     endedAt: z.date().nullable(),
   })

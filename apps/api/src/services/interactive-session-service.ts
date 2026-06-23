@@ -99,6 +99,7 @@ export async function createSession(input: {
       state: "active",
       podId: pod.id,
       workspaceId: input.workspaceId ?? null,
+      claudeModel: repoConfig?.claudeModel ?? "sonnet",
     })
     .returning();
 
