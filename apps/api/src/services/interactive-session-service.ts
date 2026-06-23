@@ -25,11 +25,13 @@ export async function createSession(input: {
   // Look up repo config for branch and image settings
   const [repoConfig] = await db.select().from(repos).where(eq(repos.repoUrl, repoUrl));
   const repoBranch = repoConfig?.defaultBranch ?? "main";
+  const agentModel = repoConfig?.claudeModel ?? "sonnet";
 
   // Get or create a repo pod for this session
   const env: Record<string, string> = {
     OPTIO_REPO_URL: repoUrl,
     OPTIO_REPO_BRANCH: repoBranch,
+    OPTIO_AGENT_MODEL: agentModel,
   };
 
   // Add git credential helper URLs
@@ -99,6 +101,7 @@ export async function createSession(input: {
       state: "active",
       podId: pod.id,
       workspaceId: input.workspaceId ?? null,
+      agentModel,
     })
     .returning();
 

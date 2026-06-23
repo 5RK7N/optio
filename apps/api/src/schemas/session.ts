@@ -22,6 +22,7 @@ export const InteractiveSessionSchema = z
     podId: z.string().nullable().describe("Pod ID backing this session"),
     costUsd: z.string().nullable().describe("Aggregate cost in USD (decimal string)"),
     workspaceId: z.string().nullable(),
+    agentModel: z.string().describe("The AI model to use for this session"),
     createdAt: z.date(),
     endedAt: z.date().nullable(),
   })
