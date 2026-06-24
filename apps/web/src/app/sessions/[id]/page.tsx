@@ -257,6 +257,8 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                   sessionId={id}
                   onCostUpdate={handleCostUpdate}
                   onSendToAgent={handleSendToAgentRegister}
+                  modelOverride={selectedModel}
+                  onModelChange={setSelectedModel}
                 />
               </ErrorBoundary>
             }

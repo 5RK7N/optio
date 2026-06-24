@@ -38,6 +38,10 @@ export class WsClient {
   private openSocket(url: string, protocols?: string[]): void {
     this.ws = protocols ? new WebSocket(url, protocols) : new WebSocket(url);
 
+    this.ws.onopen = () => {
+      this.handlers.get("$open")?.forEach((handler) => handler({ type: "$open" }));
+    };
+
     this.ws.onmessage = (msg) => {
       try {
         const event = JSON.parse(msg.data);
@@ -50,11 +54,13 @@ export class WsClient {
     };
 
     this.ws.onclose = (ev) => {
+      this.handlers.get("$close")?.forEach((handler) => handler({ type: "$close" }));
       if (ev.code === 4429) return; // connection limit exceeded — retry can't help
       this.reconnectTimer = setTimeout(() => this.connect(), 3000);
     };
 
     this.ws.onerror = () => {
+      this.handlers.get("$error")?.forEach((handler) => handler({ type: "$error" }));
       this.ws?.close();
     };
   }
@@ -127,6 +133,10 @@ export function createTerminalClient(taskId: string, tokenProvider?: TokenProvid
 
 export function createSessionTerminalClient(sessionId: string): WsClient {
   return new WsClient(`${getWsBaseUrl()}/ws/sessions/${sessionId}/terminal`);
+}
+
+export function createSessionChatClient(sessionId: string, tokenProvider?: TokenProvider): WsClient {
+  return new WsClient(`${getWsBaseUrl()}/ws/sessions/${sessionId}/chat`, tokenProvider);
 }
 
 export function createWorkflowRunLogClient(

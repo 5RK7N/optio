@@ -14,6 +14,8 @@ interface SessionChatProps {
    * text. The handler appends to the current draft and focuses the input.
    */
   onSendToAgent?: (handler: (text: string) => void) => void;
+  modelOverride?: string;
+  onModelChange?: (model: string) => void;
 }
 
 /**
@@ -27,10 +29,24 @@ interface SessionChatProps {
  * Same widget Tasks / Jobs / Reviews / Agents now use, just sourced from
  * the session WebSocket and dressed up with a chat composer.
  */
-export function SessionChat({ sessionId, onCostUpdate, onSendToAgent }: SessionChatProps) {
+export function SessionChat({ sessionId, onCostUpdate, onSendToAgent, modelOverride, onModelChange }: SessionChatProps) {
   const session = useSessionLogs(sessionId, { onCostUpdate });
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync model changes to parent
+  useEffect(() => {
+    if (session.model && onModelChange) {
+      onModelChange(session.model);
+    }
+  }, [session.model, onModelChange]);
+
+  // Sync model changes from parent
+  useEffect(() => {
+    if (modelOverride && modelOverride !== session.model) {
+      session.setModel(modelOverride);
+    }
+  }, [modelOverride, session.model, session.setModel]);
 
   // Terminal can route highlighted text into our composer.
   const sendToAgent = useCallback((text: string) => {

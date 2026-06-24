@@ -6,57 +6,48 @@ vi.mock("@/lib/api-client", () => ({
   api: { getSessionChat: (...args: any[]) => mockGetSessionChat(...args) },
 }));
 
-vi.mock("@/lib/ws-client.js", () => ({
-  getWsBaseUrl: () => "ws://localhost",
-}));
+class FakeWsClient {
+  static instances: FakeWsClient[] = [];
+  handlers: Map<string, Function[]> = new Map();
+  sent: any[] = [];
+  sessionId: string;
 
-// In-test fake WebSocket that lets us drive open/message events directly.
-class FakeWebSocket {
-  static instances: FakeWebSocket[] = [];
-  static OPEN = 1;
-  url: string;
-  readyState = 0;
-  onopen: ((ev?: any) => void) | null = null;
-  onmessage: ((ev: { data: string }) => void) | null = null;
-  onerror: ((ev?: any) => void) | null = null;
-  onclose: ((ev?: any) => void) | null = null;
-  sent: string[] = [];
-
-  constructor(url: string) {
-    this.url = url;
-    FakeWebSocket.instances.push(this);
+  constructor(sessionId: string) {
+    this.sessionId = sessionId;
+    FakeWsClient.instances.push(this);
   }
 
-  send(data: string) {
+  on(event: string, handler: Function) {
+    if (!this.handlers.has(event)) {
+      this.handlers.set(event, []);
+    }
+    this.handlers.get(event)!.push(handler);
+    return () => {};
+  }
+
+  connect() {}
+  disconnect() {}
+
+  send(data: any) {
     this.sent.push(data);
   }
 
-  close() {
-    this.readyState = 3;
-    this.onclose?.();
-  }
-
-  // Test helpers ─────────────────────────────────────────────
-  simulateOpen() {
-    this.readyState = 1;
-    this.onopen?.();
-  }
-  simulateMessage(payload: unknown) {
-    this.onmessage?.({ data: JSON.stringify(payload) });
+  simulateMessage(payload: any) {
+    const handlers = this.handlers.get("*") || [];
+    handlers.forEach((h) => h(payload));
   }
 }
 
-const originalWebSocket = (globalThis as any).WebSocket;
+vi.mock("@/lib/ws-client.js", () => ({
+  createSessionChatClient: (sessionId: string) => {
+    return new FakeWsClient(sessionId);
+  },
+}));
 
 beforeEach(() => {
-  FakeWebSocket.instances = [];
-  (globalThis as any).WebSocket = FakeWebSocket;
+  FakeWsClient.instances = [];
   vi.clearAllMocks();
   mockGetSessionChat.mockResolvedValue({ events: [] });
-});
-
-afterEach(() => {
-  (globalThis as any).WebSocket = originalWebSocket;
 });
 
 import { useSessionLogs } from "./use-session-logs";
@@ -64,8 +55,8 @@ import { useSessionLogs } from "./use-session-logs";
 describe("useSessionLogs", () => {
   it("opens a session-chat WebSocket on mount", () => {
     renderHook(() => useSessionLogs("session-1"));
-    expect(FakeWebSocket.instances).toHaveLength(1);
-    expect(FakeWebSocket.instances[0].url).toContain("/ws/sessions/session-1/chat");
+    expect(FakeWsClient.instances).toHaveLength(1);
+    expect(FakeWsClient.instances[0].sessionId).toBe("session-1");
   });
 
   it("loads historical chat events from the REST endpoint", async () => {
@@ -129,7 +120,7 @@ describe("useSessionLogs", () => {
     );
 
     const { result } = renderHook(() => useSessionLogs("session-1"));
-    const ws = FakeWebSocket.instances[0];
+    const ws = FakeWsClient.instances[0];
 
     act(() => {
       // Live event for a frame that ALSO appears in history → must dedup.
@@ -184,7 +175,7 @@ describe("useSessionLogs", () => {
 
   it("ignores catchUp WebSocket frames (REST is the source of truth for history)", async () => {
     const { result } = renderHook(() => useSessionLogs("session-1"));
-    const ws = FakeWebSocket.instances[0];
+    const ws = FakeWsClient.instances[0];
 
     // History resolves empty
     await waitFor(() => expect(mockGetSessionChat).toHaveBeenCalled());
@@ -219,10 +210,10 @@ describe("useSessionLogs", () => {
 
   it("closes the WebSocket on unmount", () => {
     const { unmount } = renderHook(() => useSessionLogs("session-1"));
-    const ws = FakeWebSocket.instances[0];
-    const closeSpy = vi.spyOn(ws, "close");
+    const ws = FakeWsClient.instances[0];
+    const disconnectSpy = vi.spyOn(ws, "disconnect");
     unmount();
-    expect(closeSpy).toHaveBeenCalled();
+    expect(disconnectSpy).toHaveBeenCalled();
   });
 
   it("sets capped=true when historical event count reaches the limit", async () => {
@@ -242,7 +233,7 @@ describe("useSessionLogs", () => {
   it("falls back to live-only logs when history fetch fails", async () => {
     mockGetSessionChat.mockRejectedValue(new Error("boom"));
     const { result } = renderHook(() => useSessionLogs("session-1"));
-    const ws = FakeWebSocket.instances[0];
+    const ws = FakeWsClient.instances[0];
 
     await waitFor(() => expect(mockGetSessionChat).toHaveBeenCalled());
 
