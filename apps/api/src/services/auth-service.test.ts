@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { execSync } from "node:child_process";
 
 // ── Mocks ───────────────────────────────────────────────────────────────────
+// Mock child_process for keychain credential reads
+vi.mock("node:child_process", () => ({
+  execSync: vi.fn(),
+}));
+
 // Mock heavy dependencies so the module can be imported in isolation.
 
 const mockRecordAuthEvent = vi.fn().mockResolvedValue(undefined);
@@ -41,7 +47,8 @@ const { retrieveSecret } = await import("./secret-service.js");
 const mockedRetrieveSecret = vi.mocked(retrieveSecret);
 
 // Re-import the function under test AFTER mocks are in place.
-const { getClaudeUsage, invalidateUsageCache } = await import("./auth-service.js");
+const { getClaudeUsage, invalidateUsageCache, getClaudeAuthToken, invalidateCredentialsCache } =
+  await import("./auth-service.js");
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 
@@ -173,5 +180,41 @@ describe("getClaudeUsage — auth failure handling", () => {
     const second = await getClaudeUsage();
     expect(second).toEqual(first);
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("invalidateCredentialsCache", () => {
+  const mockedExecSync = vi.mocked(execSync);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    invalidateCredentialsCache();
+  });
+
+  it("should invalidate the credentials cache and fetch fresh credentials", () => {
+    // 1. Initial read: should fetch from keychain
+    mockedExecSync.mockReturnValue(JSON.stringify({ claudeAiOauth: { accessToken: "token-1" } }));
+
+    const result1 = getClaudeAuthToken();
+    expect(result1.available).toBe(true);
+    expect(result1.token).toBe("token-1");
+    expect(mockedExecSync).toHaveBeenCalledTimes(1);
+
+    // 2. Second read: should use cached credentials, so execSync isn't called again
+    const result2 = getClaudeAuthToken();
+    expect(result2.available).toBe(true);
+    expect(result2.token).toBe("token-1");
+    expect(mockedExecSync).toHaveBeenCalledTimes(1);
+
+    // 3. Invalidate cache
+    invalidateCredentialsCache();
+
+    // 4. Third read: cache is empty, so should fetch from keychain again
+    mockedExecSync.mockReturnValue(JSON.stringify({ claudeAiOauth: { accessToken: "token-2" } }));
+
+    const result3 = getClaudeAuthToken();
+    expect(result3.available).toBe(true);
+    expect(result3.token).toBe("token-2");
+    expect(mockedExecSync).toHaveBeenCalledTimes(2);
   });
 });
